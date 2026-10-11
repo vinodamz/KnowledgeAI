@@ -1,4 +1,4 @@
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, AliasChoices
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
@@ -7,6 +7,18 @@ class Settings(BaseSettings):
     signing_secret: str
     session_seconds: int = Field(default=28800, ge=60, le=604800)
     secure_cookies: bool = False
+    object_directory: str = "/data/objects"
+    upload_max_bytes: int = Field(default=10_000_000, ge=1, le=20_000_000)
+    gemini_api_key: str = Field(default="", repr=False)
+    gemini_model: str = Field(default="gemini-flash-latest", validation_alias=AliasChoices("KNOWLEDGE_AI_GEMINI_MODEL", "GEMINI_MODEL"))
+
+    @field_validator("gemini_model")
+    @classmethod
+    def gemini_model_valid(cls, value):
+        import re
+        if not re.fullmatch(r"[a-zA-Z0-9._-]{1,100}", value):
+            raise ValueError("Invalid Gemini model name")
+        return value
 
     @field_validator('signing_secret')
     @classmethod

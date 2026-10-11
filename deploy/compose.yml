@@ -19,6 +19,9 @@ services:
       dockerfile: deploy/Dockerfile.api
     environment: &backend-env
       KNOWLEDGE_AI_DATABASE_URL: postgresql+psycopg://knowledgeai:${POSTGRES_PASSWORD}@postgres:5432/knowledgeai
+      KNOWLEDGE_AI_GEMINI_API_KEY: ${KNOWLEDGE_AI_GEMINI_API_KEY:-}
+      KNOWLEDGE_AI_GEMINI_MODEL: ${GEMINI_MODEL:-gemini-flash-latest}
+      KNOWLEDGE_AI_OBJECT_DIRECTORY: /data/objects
       KNOWLEDGE_AI_SIGNING_SECRET: ${KNOWLEDGE_AI_SIGNING_SECRET:?Set KNOWLEDGE_AI_SIGNING_SECRET}
     command: ["alembic", "upgrade", "head"]
     depends_on:
