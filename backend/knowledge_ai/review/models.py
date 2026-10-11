@@ -1,14 +1,14 @@
 """Private review records. Candidate identity is stable; decisions bind revision."""
 from datetime import datetime
 from uuid import UUID, uuid4
-from sqlalchemy import ForeignKey, UniqueConstraint, CheckConstraint, DateTime
+from sqlalchemy import ForeignKey, ForeignKeyConstraint, UniqueConstraint, CheckConstraint, DateTime
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 from knowledge_ai.db import Base
 
 class Candidate(Base):
     __tablename__='draft_candidates'
-    __table_args__=(UniqueConstraint('id','revision'),CheckConstraint("kind in ('entity','relation','model_suggestion')"),CheckConstraint("state in ('pending','approved','rejected')"))
+    __table_args__=(UniqueConstraint('id','revision'),CheckConstraint("kind in ('entity','relation','model_suggestion')"),CheckConstraint("state in ('pending','approved','rejected','changes_requested')"))
     id: Mapped[UUID]=mapped_column(primary_key=True,default=uuid4)
     revision: Mapped[int]=mapped_column(primary_key=True,default=1)
     source_revision_id: Mapped[UUID]=mapped_column(ForeignKey('source_revisions.revision_id'))
@@ -23,3 +23,16 @@ class RawExtraction(Base):
     job_id: Mapped[UUID]=mapped_column(ForeignKey('extraction_jobs.id'),unique=True)
     source_revision_id: Mapped[UUID]=mapped_column(ForeignKey('source_revisions.revision_id'))
     output: Mapped[dict]=mapped_column(JSONB)
+
+class ReviewDecision(Base):
+    __tablename__='review_decisions'
+    __table_args__=(ForeignKeyConstraint(['candidate_id','candidate_revision'],['draft_candidates.id','draft_candidates.revision']),)
+    id: Mapped[UUID]=mapped_column(primary_key=True,default=uuid4)
+    candidate_id: Mapped[UUID]
+    candidate_revision: Mapped[int]
+    actor_id: Mapped[UUID]=mapped_column(ForeignKey('users.id'))
+    decision: Mapped[str]
+    previous_state: Mapped[str]
+    reason: Mapped[str|None]
+    checksum: Mapped[str]
+    created_at: Mapped[datetime]=mapped_column(DateTime(timezone=True))

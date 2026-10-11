@@ -71,6 +71,8 @@ def create_app(settings=None):
     app.include_router(ontology_router)
     from knowledge_ai.ingestion.routes import router as ingestion_router
     app.include_router(ingestion_router)
+    from knowledge_ai.review.routes import router as review_router
+    app.include_router(review_router)
     return app
 
 class Credentials(BaseModel):

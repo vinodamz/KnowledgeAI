@@ -60,7 +60,8 @@ def candidates(version_id:UUID,actor=Depends(current_actor),db=Depends(get_db)):
     if not version: raise HTTPException(404,'Version not found')
     lock_scope(db,version.profile_id,version.id,version.model_revision_id,actor.id,require_draft=False)
     rows=db.scalars(select(Candidate).join(SourceRevision,Candidate.source_revision_id==SourceRevision.revision_id).where(SourceRevision.knowledge_version_id==version_id))
-    return [{'id':str(c.id),'revision':c.revision,'kind':c.kind,'payload':c.payload,'evidence':c.evidence,'state':c.state,'source_revision_id':str(c.source_revision_id)} for c in rows]
+    from knowledge_ai.review.service import candidate_json
+    return [candidate_json(db,c) for c in rows]
 
 @router.get('/sources/{revision_id}/extraction')
 def raw_extraction(revision_id:UUID,actor=Depends(current_actor),db=Depends(get_db)):
