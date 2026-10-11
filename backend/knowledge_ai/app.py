@@ -73,6 +73,8 @@ def create_app(settings=None):
     app.include_router(ingestion_router)
     from knowledge_ai.review.routes import router as review_router
     app.include_router(review_router)
+    from knowledge_ai.publication.routes import router as publication_router
+    app.include_router(publication_router)
     return app
 
 class Credentials(BaseModel):

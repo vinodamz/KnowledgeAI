@@ -1,4 +1,4 @@
-"""Publication-only indexing port. Concrete LightRAG implementation arrives in Task 6."""
+"""Publication-only indexing port. Concrete implementation: adapters.lightrag.LightRAGAdapter."""
 from dataclasses import dataclass
 from typing import Protocol, Sequence, Mapping, Any
 from uuid import UUID
@@ -10,6 +10,7 @@ class IndexReport:
     relation_count: int
     evidence_count: int
     verified: bool
+    details: Mapping[str, Any] | None = None
 
 class IndexAdapter(Protocol):
     def build(self, generation_id: UUID, approved_entities: Sequence[Mapping[str, Any]],

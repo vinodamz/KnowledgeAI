@@ -20,8 +20,11 @@ services:
     environment: &backend-env
       KNOWLEDGE_AI_DATABASE_URL: postgresql+psycopg://knowledgeai:${POSTGRES_PASSWORD}@postgres:5432/knowledgeai
       KNOWLEDGE_AI_GEMINI_API_KEY: ${KNOWLEDGE_AI_GEMINI_API_KEY:-}
-      KNOWLEDGE_AI_GEMINI_MODEL: ${GEMINI_MODEL:-gemini-flash-latest}
+      KNOWLEDGE_AI_GEMINI_MODEL: ${KNOWLEDGE_AI_GEMINI_MODEL:-${GEMINI_MODEL:-gemini-flash-latest}}
       KNOWLEDGE_AI_OBJECT_DIRECTORY: /data/objects
+      KNOWLEDGE_AI_PUBLICATION_DIRECTORY: /data/publications
+      KNOWLEDGE_AI_EMBEDDING_BASE_URL: ${KNOWLEDGE_AI_EMBEDDING_BASE_URL:-http://host.docker.internal:11434}
+      KNOWLEDGE_AI_EMBEDDING_MODEL: ${KNOWLEDGE_AI_EMBEDDING_MODEL:-nomic-embed-text}
       KNOWLEDGE_AI_SIGNING_SECRET: ${KNOWLEDGE_AI_SIGNING_SECRET:?Set KNOWLEDGE_AI_SIGNING_SECRET}
     command: ["alembic", "upgrade", "head"]
     depends_on:
@@ -37,6 +40,7 @@ services:
         condition: service_completed_successfully
     volumes:
       - objects:/data/objects
+      - publications:/data/publications:ro
   worker:
     build: *build
     environment: *backend-env
@@ -46,6 +50,7 @@ services:
         condition: service_completed_successfully
     volumes:
       - objects:/data/objects
+      - publications:/data/publications
   # UI implementation and same-origin proxy arrive in Task 8.
   ui:
     image: nginx:alpine
@@ -55,3 +60,4 @@ services:
 volumes:
   postgres-data:
   objects:
+  publications:

@@ -8,6 +8,10 @@ class Settings(BaseSettings):
     session_seconds: int = Field(default=28800, ge=60, le=604800)
     secure_cookies: bool = False
     object_directory: str = "/data/objects"
+    publication_directory: str = "/data/publications"
+    embedding_base_url: str = "http://host.docker.internal:11434"
+    embedding_model: str = "nomic-embed-text"
+    embedding_dimensions: int = Field(default=768, ge=1)
     upload_max_bytes: int = Field(default=10_000_000, ge=1, le=20_000_000)
     gemini_api_key: str = Field(default="", repr=False)
     gemini_model: str = Field(default="gemini-flash-latest", validation_alias=AliasChoices("KNOWLEDGE_AI_GEMINI_MODEL", "GEMINI_MODEL"))

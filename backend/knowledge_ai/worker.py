@@ -10,13 +10,16 @@ from knowledge_ai.ingestion.jobs import run_one
 logger=logging.getLogger(__name__)
 
 def poll_once(database,settings):
-    try:
-        return run_one(database,settings)
-    except Exception as error:
-        category='registry_failure' if isinstance(error,SQLAlchemyError) else 'worker_failure'
-        # Never include exception text, traceback, request bodies, source data or keys.
-        logger.error('worker_poll_failed category=%s',category)
-        return False
+    from knowledge_ai.publication.worker import run_one as publish_one
+    worked = False
+    for category, runner in (('extraction', run_one), ('publication', publish_one)):
+        try:
+            worked = runner(database,settings) or worked
+        except Exception as error:
+            failure = 'registry_failure' if isinstance(error,SQLAlchemyError) else 'worker_failure'
+            # No exception text, source data, request bodies or credentials.
+            logger.error('worker_poll_failed pipeline=%s category=%s',category,failure)
+    return worked
 
 def main():
     settings=Settings()

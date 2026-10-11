@@ -21,7 +21,8 @@ def db(settings, monkeypatch):
     command.upgrade(Config('alembic.ini'), 'head')
     database = Database(settings.database_url)
     with database.sessions() as session:
-        session.execute(text('TRUNCATE audit_events, auth_sessions, users CASCADE'))
+        session.execute(text('TRUNCATE publication_jobs, active_publication, publication_generations, audit_events, auth_sessions, users CASCADE'))
+        session.execute(text('INSERT INTO active_publication VALUES(1,NULL)'))
         session.add(User(username='admin', password_hash=passwords.hash('a-good-test-password'), role='admin'))
         session.commit()
     yield database
