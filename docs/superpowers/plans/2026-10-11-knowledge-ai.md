@@ -66,16 +66,16 @@ Each task is a separate commit and reviewable milestone. Write the behavioral te
 
 **Contract:** `Actor(id: UUID, role: Literal['admin','owner','contributor','reader'])`; `authorize(actor, action, profile_id) -> None` raises a 403 refusal. Bootstrap an administrator through a local terminal command; use hashed passwords and authenticated server sessions. No public user-registration endpoint.
 
-- [ ] Add an authentication regression test:
+- [x] Add an authentication regression test:
   ```python
   def test_anonymous_cannot_create_profile(client):
       assert client.post('/api/profiles', json={'name': 'Product A', 'kind': 'product'}).status_code == 401
   ```
-- [ ] Run `cd backend && uv run pytest tests/security/test_identity.py -q`; observe refusal before adding protected routes.
-- [ ] Create FastAPI app, settings validation, PostgreSQL connection/migrations, session authentication, CSRF protection for cookie-authenticated mutations, owner/admin/contributor/reader roles, and audit event insertion. Reject missing signing secrets at startup.
-- [ ] Add health/readiness routes. Compose runs API, worker, PostgreSQL and UI with persistent volumes and loopback-only exposed ports. The indexing engine is reached through an internal adapter.
-- [ ] Run focused authentication tests; verify invalid sessions and anonymous mutations are rejected and readiness fails when PostgreSQL is unavailable.
-- [ ] Commit as `feat: add governed Knowledge AI foundation`.
+- [x] Run `cd backend && uv run pytest tests/security/test_identity.py -q`; observe refusal before adding protected routes.
+- [x] Create FastAPI app, settings validation, PostgreSQL connection/migrations, session authentication, CSRF protection for cookie-authenticated mutations, owner/admin/contributor/reader roles, and audit event insertion. Reject missing signing secrets at startup.
+- [x] Add health/readiness routes. Compose runs API, worker, PostgreSQL and UI with persistent volumes and loopback-only exposed ports. The indexing engine is reached through an internal adapter.
+- [x] Run focused authentication tests; verify invalid sessions and anonymous mutations are rejected and readiness fails when PostgreSQL is unavailable.
+- [x] Commit as `feat: add governed Knowledge AI foundation`.
 
 **Exit:** A signed-in actor can use the application; identity is enforced by the API.
 
@@ -85,17 +85,17 @@ Each task is a separate commit and reviewable milestone. Write the behavioral te
 
 **Contract:** `Profile(id, kind, name, owner_id)`; `KnowledgeVersion(id, profile_id, label, predecessor_id, status)`; `ProjectDependency(project_version_id, product_version_id)`; `create_version(actor, profile_id, label, predecessor_id=None) -> KnowledgeVersion`.
 
-- [ ] Add a cross-owner refusal test:
+- [x] Add a cross-owner refusal test:
   ```python
   def test_owner_cannot_modify_another_profile(owner_b, product_a, client):
       r = client.patch(f'/api/profiles/{product_a.id}', actor=owner_b, json={'name': 'Changed'})
       assert r.status_code == 403
   ```
-- [ ] Run `uv run pytest tests/security/test_profile_owners.py tests/integration/test_profile_versions.py -q` and capture failures.
-- [ ] Add profile/version/dependency tables with unique version labels within each profile, foreign keys, owner assignments, predecessor links, and explicit draft/released/archived status. Admin assignment does not transfer approval authority implicitly to unrelated owners.
-- [ ] Implement CRUD and authorization. Reject a project dependency on an incompatible/unreleased product version; allow multiple pinned product dependencies. Released version payloads are immutable.
-- [ ] Test that a new product version leaves existing project dependency IDs unchanged, released versions reject mutation, and archive retains records.
-- [ ] Commit as `feat: add knowledge profiles and pinned versions`.
+- [x] Run `uv run pytest tests/security/test_profile_owners.py tests/integration/test_profile_versions.py -q` and capture failures.
+- [x] Add profile/version/dependency tables with unique version labels within each profile, foreign keys, owner assignments, predecessor links, and explicit draft/released/archived status. Admin assignment does not transfer approval authority implicitly to unrelated owners.
+- [x] Implement CRUD and authorization. Reject a project dependency on an incompatible/unreleased product version; allow multiple pinned product dependencies. Released version payloads are immutable.
+- [x] Test that a new product version leaves existing project dependency IDs unchanged, released versions reject mutation, and archive retains records.
+- [x] Commit as `feat: add knowledge profiles and pinned versions`.
 
 **Exit:** Product/project knowledge and ownership cannot be conflated.
 
@@ -105,17 +105,17 @@ Each task is a separate commit and reviewable milestone. Write the behavioral te
 
 **Contract:** `KnowledgeModelRevision(id, profile_id, revision, status)`; `EntityType(id, model_revision_id, name, attributes)`; `RelationType(id, source_type_id, target_type_id, name)`; `CanonicalConcept(id, profile_id, name, aliases)`; `resolve_concept(profile_id, model_revision_id, label) -> Match | None`. Product/project versions reference exact model revision IDs.
 
-- [ ] Test scoped alias resolution:
+- [x] Test scoped alias resolution:
   ```python
   def test_alias_does_not_cross_unlinked_profiles(resolver, profiles):
       resolver.add_alias(profiles.a, 'PLC', 'Programmable Controller')
       assert resolver.resolve(profiles.b, 'PLC') is None
   ```
-- [ ] Run `uv run pytest tests/unit/test_canonical_resolver.py tests/integration/test_model_publication.py -q`; verify failing behavior.
-- [ ] Implement owner-editable model drafts with entity/attribute definitions, canonical labels, aliases, relation endpoint constraints, cross-profile links and profile semantic descriptions. Make published model revisions immutable.
-- [ ] Add entity-versus-attribute scoring fields: identity, lifecycle, relationships, own attributes, reuse, retrieval rationale. Treat AI scores as suggestions requiring owner qualification.
-- [ ] Test duplicate alias ambiguity, normalized label matches, model publication permissions, and independent product versus model version IDs.
-- [ ] Commit as `feat: add versioned knowledge models and canonical resolution`.
+- [x] Run `uv run pytest tests/unit/test_canonical_resolver.py tests/integration/test_model_publication.py -q`; verify failing behavior.
+- [x] Implement owner-editable model drafts with entity/attribute definitions, canonical labels, aliases, relation endpoint constraints, cross-profile links and profile semantic descriptions. Make published model revisions immutable.
+- [x] Add entity-versus-attribute scoring fields: identity, lifecycle, relationships, own attributes, reuse, retrieval rationale. Treat AI scores as suggestions requiring owner qualification.
+- [x] Test duplicate alias ambiguity, normalized label matches, model publication permissions, and independent product versus model version IDs.
+- [x] Commit as `feat: add versioned knowledge models and canonical resolution`.
 
 **Exit:** Extraction has a published model to map against; missing definitions cannot extend it automatically.
 
@@ -125,7 +125,7 @@ Each task is a separate commit and reviewable milestone. Write the behavioral te
 
 **Contract:** `SourceRevision(source_id, revision_id, profile_id, knowledge_version_id, model_revision_id, content_hash, provenance, access_policy)`; `Evidence(source_revision_id, page, chunk_id, start, end, excerpt)`; `Candidate(id, revision, kind, payload, evidence, state)`; `SourceAdapter.fetch_revision(source_id, revision_id) -> SourceRevision`; `extract(source_revision, model_revision) -> list[Candidate]`.
 
-- [ ] Add an isolation test:
+- [x] Add an isolation test:
   ```python
   def test_upload_creates_drafts_without_publishing(api, graph, vectors, published_chunks):
       api.upload_fixture('product_manual.txt')
@@ -133,12 +133,12 @@ Each task is a separate commit and reviewable milestone. Write the behavioral te
       assert api.candidates()
       assert graph.count() == vectors.count() == published_chunks.count() == 0
   ```
-- [ ] Run `uv run pytest tests/integration/test_draft_ingestion.py -q`; observe the isolation test fail before ingestion exists.
-- [ ] Implement manual upload with stable IDs, hashes, size/type validation, safe filename handling and persistent object storage. Initially support TXT, Markdown and text-based PDF; explicitly reject image-only PDFs pending an OCR adapter.
-- [ ] Implement asynchronous extraction jobs with durable statuses, retries and bounded Gemini calls. Validate structured Gemini output against the published model; unknown definitions become model suggestions, not published types. Preserve source/page/chunk evidence.
-- [ ] Store entity/relation candidate revisions and raw extraction records only in draft storage. A re-upload of the same profile/version/model/content hash does not create duplicate jobs; a different source revision does.
-- [ ] Test malformed output, provider errors, unauthorized upload, duplicate source hashes, missing types, failure recovery and absence of writes to every published store.
-- [ ] Commit as `feat: extract manual sources into isolated review drafts`.
+- [x] Run `uv run pytest tests/integration/test_draft_ingestion.py -q`; observe the isolation test fail before ingestion exists.
+- [x] Implement manual upload with stable IDs, hashes, size/type validation, safe filename handling and persistent object storage. Initially support TXT, Markdown and text-based PDF; explicitly reject image-only PDFs pending an OCR adapter.
+- [x] Implement asynchronous extraction jobs with durable statuses, retries and bounded Gemini calls. Validate structured Gemini output against the published model; unknown definitions become model suggestions, not published types. Preserve source/page/chunk evidence.
+- [x] Store entity/relation candidate revisions and raw extraction records only in draft storage. A re-upload of the same profile/version/model/content hash does not create duplicate jobs; a different source revision does.
+- [x] Test malformed output, provider errors, unauthorized upload, duplicate source hashes, missing types, failure recovery and absence of writes to every published store.
+- [x] Commit as `feat: extract manual sources into isolated review drafts`.
 
 **Exit:** Uploads produce reviewable evidence, never immediate published knowledge.
 
@@ -148,7 +148,7 @@ Each task is a separate commit and reviewable milestone. Write the behavioral te
 
 **Contract:** `review_candidate(actor, candidate_id, expected_revision, decision, reason=None) -> ReviewDecision`; `edit_candidate(actor, candidate_id, expected_revision, payload) -> Candidate`; decisions: approve/reject/request_changes. Approved-but-blocked is a computed publication readiness status.
 
-- [ ] Add stale-review and endpoint tests:
+- [x] Add stale-review and endpoint tests:
   ```python
   def test_stale_revision_cannot_be_approved(review, candidate, owner):
       review.edit_candidate(owner, candidate.id, 1, {'description': 'Corrected'})
@@ -159,12 +159,12 @@ Each task is a separate commit and reviewable milestone. Write the behavioral te
       assert review.endpoint_states(relation.id) == ['draft', 'draft']
       assert review.ready_to_publish(relation.id) is False
   ```
-- [ ] Run `uv run pytest tests/integration/test_review_lifecycle.py tests/security/test_review_permissions.py -q`; observe the missing behavior.
-- [ ] Implement database transactions and optimistic revision checks. Require the assigned scope owner; bind approval to a checksum of payload/evidence. Record actor, timestamp, previous state and reason in audit history.
-- [ ] Editing creates a new revision and invalidates approval; the existing published revision remains active. Batch decisions enumerate exact candidate/revision pairs and enforce the same checks for each.
-- [ ] Validate relation endpoints and cross-profile links; refuse publication readiness until approved endpoints are present in the target generation.
-- [ ] Test wrong-owner calls, contributor approval, batch stale revisions, evidence changes, rejection reasons, and owner reassignment preserving past reviewer attribution.
-- [ ] Commit as `feat: enforce owner approval for exact knowledge revisions`.
+- [x] Run `uv run pytest tests/integration/test_review_lifecycle.py tests/security/test_review_permissions.py -q`; observe the missing behavior.
+- [x] Implement database transactions and optimistic revision checks. Require the assigned scope owner; bind approval to a checksum of payload/evidence. Record actor, timestamp, previous state and reason in audit history.
+- [x] Editing creates a new revision and invalidates approval; the existing published revision remains active. Batch decisions enumerate exact candidate/revision pairs and enforce the same checks for each.
+- [x] Validate relation endpoints and cross-profile links; refuse publication readiness until approved endpoints are present in the target generation.
+- [x] Test wrong-owner calls, contributor approval, batch stale revisions, evidence changes, rejection reasons, and owner reassignment preserving past reviewer attribution.
+- [x] Commit as `feat: enforce owner approval for exact knowledge revisions`.
 
 **Exit:** Neither UI nor direct API requests can bypass review.
 
@@ -174,7 +174,7 @@ Each task is a separate commit and reviewable milestone. Write the behavioral te
 
 **Contract:** `PublicationGeneration(id, scope_manifest, status)`; `build_generation(approved_manifest) -> GenerationReport`; `activate_generation(generation_id, expected_active_id) -> None`; `IndexAdapter.build(generation_id, approved_entities, approved_relations, approved_evidence) -> IndexReport`. Store separate physical workspaces per staging generation while presenting one central logical approved graph.
 
-- [ ] Add fault-injection test:
+- [x] Add fault-injection test:
   ```python
   def test_partial_index_failure_never_activates(stores, publisher, active_generation):
       stores.vectors.fail_next_write()
@@ -182,12 +182,12 @@ Each task is a separate commit and reviewable milestone. Write the behavioral te
       assert result.status == 'publication_failed'
       assert publisher.active_id() == active_generation.id
   ```
-- [ ] Run `uv run pytest tests/integration/test_publication_generation.py -q`; observe failure.
-- [ ] Implement durable jobs with revision checksums, idempotency keys, a single publication writer, staging workspaces and generation manifests. Include approved endpoint closure and scope-aware stable IDs; never key solely on display labels.
-- [ ] Build graph, vectors and approved evidence from the authoritative registry through the adapter. Do not ingest full original documents merely because some candidates are approved. Follow LightRAG storage contracts when using its custom-graph insertion interfaces.
-- [ ] Verify all indexed facts, endpoint references, approved evidence and store counts against the manifest before activation. Transactionally swap the active pointer using compare-and-swap; requests retain their original generation until completion.
-- [ ] Test process interruption at every store write/verification/activation boundary, duplicate retries, stale approval revisions, unavailable embeddings and failed active-pointer races. Publication status changes to published only after successful activation.
-- [ ] Commit as `feat: publish approved knowledge through verified generations`.
+- [x] Run `uv run pytest tests/integration/test_publication_generation.py -q`; observe failure.
+- [x] Implement durable jobs with revision checksums, idempotency keys, a single publication writer, staging workspaces and generation manifests. Include approved endpoint closure and scope-aware stable IDs; never key solely on display labels.
+- [x] Build graph, vectors and approved evidence from the authoritative registry through the adapter. Do not ingest full original documents merely because some candidates are approved. Follow LightRAG storage contracts when using its custom-graph insertion interfaces.
+- [x] Verify all indexed facts, endpoint references, approved evidence and store counts against the manifest before activation. Transactionally swap the active pointer using compare-and-swap; requests retain their original generation until completion.
+- [x] Test process interruption at every store write/verification/activation boundary, duplicate retries, stale approval revisions, unavailable embeddings and failed active-pointer races. Publication status changes to published only after successful activation.
+- [x] Commit as `feat: publish approved knowledge through verified generations`.
 
 **Exit:** Partial publication cannot leak into the active graph or answers.
 
@@ -197,19 +197,19 @@ Each task is a separate commit and reviewable milestone. Write the behavioral te
 
 **Contract:** `RetrievalContext(actor_id, profile_id, knowledge_version_id, generation_id)`; `retrieve(context, query) -> KnowledgeContext`; `KnowledgeContext(items, citations, model_versions, policy_context)`; `answer(context, query) -> Answer`.
 
-- [ ] Test draft/version exclusion:
+- [x] Test draft/version exclusion:
   ```python
   def test_answer_context_excludes_draft_and_other_versions(service, seeded_context):
       result = service.retrieve(seeded_context, 'operating limits')
       assert all(item.approved for item in result.items)
       assert {item.version_id for item in result.items} <= seeded_context.allowed_version_ids
   ```
-- [ ] Run `uv run pytest tests/security/test_retrieval_scope.py tests/integration/test_cited_answers.py -q`; verify missing behavior.
-- [ ] Resolve identity and pinned project dependencies, then enforce read policy before graph/vector/metadata retrieval. Create scoped indexes/views where the adapter cannot enforce filters natively; never retrieve unauthorized candidates then merely remove them after generation.
-- [ ] Plan retrieval stores, fuse and deduplicate authorized evidence, rank results, and package citations plus profile/product/project/model versions. Mark implementation overrides explicitly; preserve unresolved contradictions.
-- [ ] Generate the final Gemini answer only from authorized approved context. With no approved context, return an explicit insufficient-knowledge response rather than a Gemini-only fallback.
-- [ ] Test cross-owner read grants, forbidden profile traversal, version mixing, central exploration attribution, forged scope parameters, stale generations, citations and prompt injection in source text.
-- [ ] Commit as `feat: retrieve approved version-scoped knowledge with citations`.
+- [x] Run `uv run pytest tests/security/test_retrieval_scope.py tests/integration/test_cited_answers.py -q`; verify missing behavior.
+- [x] Resolve identity and pinned project dependencies, then enforce read policy before graph/vector/metadata retrieval. Create scoped indexes/views where the adapter cannot enforce filters natively; never retrieve unauthorized candidates then merely remove them after generation.
+- [x] Plan retrieval stores, fuse and deduplicate authorized evidence, rank results, and package citations plus profile/product/project/model versions. Mark implementation overrides explicitly; preserve unresolved contradictions.
+- [x] Generate the final Gemini answer only from authorized approved context. With no approved context, return an explicit insufficient-knowledge response rather than a Gemini-only fallback.
+- [x] Test cross-owner read grants, forbidden profile traversal, version mixing, central exploration attribution, forged scope parameters, stale generations, citations and prompt injection in source text.
+- [x] Commit as `feat: retrieve approved version-scoped knowledge with citations`.
 
 **Exit:** Answers and graph views share the same governance boundary.
 
