@@ -69,6 +69,9 @@ endpoint and evidence reference, and exact inventory counts against the manifest
 It independently checks persisted GraphML, persisted KV and decoded persisted vector
 matrices (shape, finite/nonzero values, exact match), then records per-partition file
 SHA256 digests and the canonical manifest digest. Completed files and seal are fsynced.
+Persisted chunk content, file attribution and source IDs are compared directly to the
+manifest-derived approved chunks independently of SDK memory. The sealed report records
+embedding provider (`ollama`), model and dimensions without endpoint URLs or credentials.
 The seal is checked again immediately before the registry activation transaction.
 
 ## Retrieval integration (Task7)
@@ -79,6 +82,9 @@ authorized version. This verifies authorization before touching any engine files
 refuses staging/verified/failed generations. Draft versions require owner/contributor/
 admin access. Retired generations support requests already pinned to an older snapshot.
 The function returns only that physical partition and its exact approved facts.
+Reader resolution rejects a different embedding provider, model or dimension setting
+before any index file access. Task7 must use the sealed identity for query embeddings;
+changing models requires rebuilding a generation, even when dimensions stay equal.
 
 Read sealed files directly; do not initialize/finalize a LightRAG instance for queries,
 write response caches, migrate stores, or retrieve globally and filter afterward.

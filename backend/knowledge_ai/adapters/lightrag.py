@@ -51,6 +51,14 @@ def files_digest(directory):
     return digest(entries)
 
 
+def embedding_identity(settings):
+    """Public vector compatibility identity; endpoint URLs/credentials are excluded."""
+    model = settings.embedding_model
+    if not isinstance(model, str) or not model.strip() or model != model.strip():
+        raise ValueError('Invalid embedding model identity')
+    return {'provider': 'ollama', 'model': model, 'dimensions': settings.embedding_dimensions}
+
+
 class LightRAGAdapter:
     def __init__(self, settings, *, embedding=None, fault=None):
         if importlib.metadata.version('lightrag-hku') != '1.5.4':
@@ -60,6 +68,7 @@ class LightRAGAdapter:
         logging.getLogger('lightrag').disabled = True
         logging.getLogger('nano-vectordb').disabled = True
         self.settings = settings
+        embedding_identity(settings)
         self.root = Path(settings.publication_directory)
         self.embedding = embedding or self._ollama
         self.fault = fault or (lambda boundary: None)
@@ -115,7 +124,8 @@ class LightRAGAdapter:
             partition_dir = directory / workspace
             partitions[version] = {'workspace': workspace, 'profile_id': facts[0]['target_profile_id'],
                                    'counts': counts, 'digest': files_digest(partition_dir)}
-        report = {'manifest_digest': digest(manifest), 'partitions': partitions, 'verified': True}
+        report = {'manifest_digest': digest(manifest), 'partitions': partitions, 'verified': True,
+                  'embedding': embedding_identity(self.settings)}
         self.fault('before_seal')
         # Persist all completed files and the seal before the registry can activate.
         for path in directory.rglob('*'):
@@ -185,6 +195,10 @@ class LightRAGAdapter:
         chunk_file = Path(rag.text_chunks._file_name)
         persisted = json.loads(chunk_file.read_text())
         if set(persisted) != set(ch): raise ValueError('Approved chunk inventory mismatch')
+        for cid, expected in ch.items():
+            actual = persisted[cid]
+            if not isinstance(actual, dict) or any(actual.get(k) != expected[k] for k in ('content', 'file_path', 'source_id')):
+                raise ValueError('Persisted approved evidence payload mismatch')
         actual_chunks = await rag.text_chunks.get_by_ids(list(ch))
         for (cid, expected), actual in zip(ch.items(), actual_chunks):
             if not actual or any(actual.get(k) != expected[k] for k in ('content', 'file_path', 'source_id')):
@@ -214,6 +228,8 @@ class LightRAGAdapter:
         return {'nodes': len(nodes), 'edges': len(edges), 'entity_vectors': len(expected_nodes), 'relation_vectors': len(expected_edges), 'chunks': len(ch), 'chunk_vectors': len(ch)}
 
     def verify_seal(self, generation_id, report):
+        if report.get('embedding') != embedding_identity(self.settings):
+            raise ValueError('Embedding configuration differs from sealed generation')
         directory = self.root / str(UUID(str(generation_id)))
         if json.loads((directory / 'verified.json').read_text()) != report: raise ValueError('Index seal mismatch')
         for partition in report['partitions'].values():

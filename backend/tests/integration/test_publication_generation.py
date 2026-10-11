@@ -293,3 +293,54 @@ def test_persisted_payload_tampering_rejected_before_activation(client,db,tmp_pa
     run_one(db,client.app.state.settings,adapter,fault=corrupt)
     assert client.get('/api/publications/'+job['id']).json()['status']=='publication_failed'
     with db.sessions() as s:assert active(s) is None
+
+
+@pytest.mark.parametrize('field',['content','file_path','source_id'])
+def test_persisted_chunk_payload_corruption_before_verification_never_activates(client,db,tmp_path,field):
+    import json
+    _,p,v,es,r,adapter=setup_publication(client,db,tmp_path)
+    job=enqueue(client,p,v,es+[r])
+    def corrupt(at):
+        if at=='after_insert':
+            path=next(adapter.root.rglob('kv_store_text_chunks.json'))
+            payload=json.loads(path.read_text())
+            next(iter(payload.values()))[field]='unapproved replacement'
+            path.write_text(json.dumps(payload))
+    adapter.fault=corrupt
+    run_one(db,client.app.state.settings,adapter)
+    assert client.get('/api/publications/'+job['id']).json()['status']=='publication_failed'
+    with db.sessions() as s:assert active(s) is None
+
+
+def test_embedding_identity_is_sealed_and_reader_rejects_incompatible_configuration(client,db,tmp_path,monkeypatch):
+    from knowledge_ai.publication import reader
+    from knowledge_ai.governance.policy import Actor
+    from fastapi import HTTPException
+    ids,p,v,es,r,adapter=setup_publication(client,db,tmp_path)
+    enqueue(client,p,v,es+[r]);run_one(db,client.app.state.settings,adapter)
+    settings=client.app.state.settings
+    owner=Actor(UUID(ids['owner-a']),'owner',frozenset({UUID(p)}))
+    with db.sessions() as s:
+        g=active(s)
+        assert g.verification['embedding']=={'provider':'ollama','model':settings.embedding_model,'dimensions':32}
+        adapter.verify_seal(g.id,g.verification)
+        def unexpected_read(path):raise AssertionError('Incompatible embedding must fail before files are read')
+        monkeypatch.setattr(reader,'files_digest',unexpected_read)
+        settings.embedding_model='different-model-same-dimensions'
+        with pytest.raises(HTTPException) as denied:reader.verified_partition(s,owner,settings,g.id,UUID(v))
+        assert denied.value.status_code==503
+        settings.embedding_model=g.verification['embedding']['model'];settings.embedding_dimensions=768
+        with pytest.raises(HTTPException) as denied:reader.verified_partition(s,owner,settings,g.id,UUID(v))
+        assert denied.value.status_code==503
+        settings.embedding_dimensions=32
+        # Simulate an incompatible report only in memory; persisted reports are immutable.
+        g.verification={**g.verification,'embedding':{**g.verification['embedding'],'provider':'another-provider'}}
+        with s.no_autoflush, pytest.raises(HTTPException) as denied:reader.verified_partition(s,owner,settings,g.id,UUID(v))
+        assert denied.value.status_code==503
+
+
+@pytest.mark.parametrize('model',['','   ',' model','model '])
+def test_embedding_identity_requires_a_valid_model(model):
+    from types import SimpleNamespace
+    from knowledge_ai.adapters.lightrag import embedding_identity
+    with pytest.raises(ValueError):embedding_identity(SimpleNamespace(embedding_model=model,embedding_dimensions=32))

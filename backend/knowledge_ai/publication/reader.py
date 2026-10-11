@@ -13,7 +13,7 @@ from knowledge_ai.profiles.models import KnowledgeVersion
 from knowledge_ai.profiles.service import draft_access
 from knowledge_ai.publication.models import PublicationGeneration
 from knowledge_ai.publication.builder import active, digest
-from knowledge_ai.adapters.lightrag import files_digest
+from knowledge_ai.adapters.lightrag import files_digest, embedding_identity
 
 @dataclass(frozen=True)
 class VerifiedPartition:
@@ -40,6 +40,11 @@ def verified_partition(db, actor, settings, generation_id, version_id):
         raise HTTPException(404, 'Published generation not found')
     if digest(generation.scope_manifest) != generation.verification['manifest_digest']:
         raise HTTPException(503, 'Publication verification failed')
+    try:
+        compatible = generation.verification.get('embedding') == embedding_identity(settings)
+    except ValueError:
+        compatible = False
+    if not compatible: raise HTTPException(503, 'Published embedding configuration incompatible')
     partition = generation.verification['partitions'].get(str(version_id))
     if not partition: return None
     if partition['profile_id'] != str(version.profile_id): raise HTTPException(503, 'Partition attribution mismatch')
