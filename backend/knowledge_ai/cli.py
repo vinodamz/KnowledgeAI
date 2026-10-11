@@ -10,9 +10,11 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('username')
     args = parser.parse_args()
+    if not 1 <= len(args.username) <= 200:
+        parser.error('Username must have between 1 and 200 characters')
     password = getpass.getpass('Administrator password: ')
-    if len(password) < 12:
-        parser.error('Password must have at least 12 characters')
+    if not 12 <= len(password) <= 1024:
+        parser.error('Password must have between 12 and 1024 characters')
     if password != getpass.getpass('Confirm password: '):
         parser.error('Passwords do not match')
     db = Database(Settings().database_url)

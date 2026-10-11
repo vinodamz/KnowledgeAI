@@ -56,6 +56,8 @@ Organize files by responsibility. The initial service can be a modular applicati
 
 ## Delivery sequence and review gates
 
+Implementation sequencing clarification: Task 1 supplies authentication, database, deployment scaffolding and the internal indexing interface. The working Angular UI and proxy arrive in Task 8, and the concrete LightRAG engine adapter arrives in Task 6. Task 1 alone is not a usable Stage 1 release; all nine tasks and the final end-to-end verification remain required.
+
 Each task is a separate commit and reviewable milestone. Write the behavioral test first, observe its failure, implement the contract, then pass the focused tests. Do not expose a partially governed ingestion route as a completed release.
 
 ### Task 1 — runnable foundation and owner authentication

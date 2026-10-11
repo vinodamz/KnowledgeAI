@@ -1,8 +1,29 @@
-.git
-.env
-backend/.venv
-backend/tests
+# Only application/package/migration inputs enter the build context.
+**
+!backend/
+!backend/pyproject.toml
+!backend/knowledge_ai/
+!backend/knowledge_ai/**
+!backend/migrations/
+!backend/migrations/**
+!backend/alembic.ini
+!deploy/
+!deploy/Dockerfile.api
+# Private files remain excluded even inside permitted source directories.
+**/.env
+**/.env.*
+**/*.key
+**/*.pem
+**/secrets
+**/secrets/**
+**/data
+**/data/**
+**/objects
+**/objects/**
+**/.venv
+**/.venv/**
 **/__pycache__
+**/__pycache__/**
+**/*.pyc
 **/.pytest_cache
-docs
-.superpowers
+**/.pytest_cache/**

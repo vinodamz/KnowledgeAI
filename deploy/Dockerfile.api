@@ -1,5 +1,7 @@
 FROM python:3.12-slim
 WORKDIR /app
-COPY backend /app
+COPY backend/pyproject.toml backend/alembic.ini /app/
+COPY backend/knowledge_ai /app/knowledge_ai
+COPY backend/migrations /app/migrations
 RUN pip install --no-cache-dir .
 CMD ["uvicorn", "knowledge_ai.app:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000"]

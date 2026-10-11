@@ -121,3 +121,13 @@ def test_audit_rolls_back_with_transaction(db):
         session.rollback()
     with db.sessions() as session:
         assert session.scalar(select(AuditEvent).where(AuditEvent.action == 'test_rolled_back')) is None
+
+@pytest.mark.parametrize('username,password', [('', 'valid-password'), ('x'*201, 'valid-password'), ('valid', 'x'*1025)])
+def test_bootstrap_rejects_unusable_credentials(db, monkeypatch, username, password):
+    from knowledge_ai.cli import main
+    monkeypatch.setattr('sys.argv', ['bootstrap-admin', username])
+    monkeypatch.setattr('getpass.getpass', lambda _: password)
+    with pytest.raises(SystemExit):
+        main()
+    with db.sessions() as session:
+        assert session.scalar(select(User).where(User.username == username)) is None
