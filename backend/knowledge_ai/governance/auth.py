@@ -30,7 +30,12 @@ def current_actor(request: Request):
             supplied = request.headers.get('X-CSRF-Token', '')
             if not secrets.compare_digest(digest(supplied), session.csrf_hash):
                 raise HTTPException(403, 'CSRF token required')
-        return Actor(id=user.id, role=user.role)
+        from knowledge_ai.profiles.models import Profile, ProfileGrant
+        owned = frozenset(db.scalars(select(Profile.id).where(Profile.owner_id == user.id)))
+        grants = list(db.scalars(select(ProfileGrant).where(ProfileGrant.user_id == user.id)))
+        return Actor(id=user.id, role=user.role, owned_profile_ids=owned,
+                     read_profile_ids=frozenset(g.profile_id for g in grants if g.read),
+                     contribute_profile_ids=frozenset(g.profile_id for g in grants if g.contribute))
 
 def issue_session(db, user, settings):
     token, csrf = secrets.token_urlsafe(32), secrets.token_urlsafe(32)

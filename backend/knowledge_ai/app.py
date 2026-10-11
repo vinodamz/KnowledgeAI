@@ -54,7 +54,7 @@ def create_app(settings=None):
 
     @app.get('/api/auth/me')
     def me(actor=Depends(current_actor)):
-        return {'id': str(actor.id), 'role': actor.role}
+        return {'id': str(actor.id), 'role': actor.role, 'owned_profile_ids': sorted(map(str, actor.owned_profile_ids)), 'read_profile_ids': sorted(map(str, actor.read_profile_ids)), 'contribute_profile_ids': sorted(map(str, actor.contribute_profile_ids))}
 
     @app.post('/api/auth/logout', status_code=204)
     def logout(request: Request, response: Response, actor=Depends(current_actor)):
@@ -65,9 +65,8 @@ def create_app(settings=None):
             db.commit()
         response.delete_cookie('knowledge_ai_session')
 
-    @app.post('/api/profiles')
-    def profiles_placeholder(actor=Depends(current_actor)):
-        raise HTTPException(501, 'Profiles are implemented in Task 2')
+    from knowledge_ai.profiles.routes import router
+    app.include_router(router)
     return app
 
 class Credentials(BaseModel):

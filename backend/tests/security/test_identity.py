@@ -107,10 +107,10 @@ def test_bootstrap_rejects_short_password(db, monkeypatch):
     with db.sessions() as session:
         assert session.scalar(select(User).where(User.username == 'unsafe')) is None
 
-def test_authenticated_profile_stub_enforces_csrf(client):
+def test_authenticated_profile_enforces_csrf(client):
     response = login(client)
     assert client.post('/api/profiles', json={}).status_code == 403
-    assert client.post('/api/profiles', json={}, headers={'X-CSRF-Token':response.json()['csrf_token']}).status_code == 501
+    assert client.post('/api/profiles', json={}, headers={'X-CSRF-Token':response.json()['csrf_token']}).status_code == 422
 
 def test_audit_rolls_back_with_transaction(db):
     from knowledge_ai.governance.audit import record_event

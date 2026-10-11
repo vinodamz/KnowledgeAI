@@ -23,6 +23,6 @@ def authorize(actor: Actor, action: str, profile_id: UUID | None) -> None:
     elif action == 'read':
         allowed = actor.role == 'admin' or profile_id in (actor.owned_profile_ids | actor.read_profile_ids | actor.contribute_profile_ids)
     else:
-        allowed = actor.role == 'admin' or (actor.role in {'owner', 'admin'} and profile_id in actor.owned_profile_ids) or (actor.role == 'contributor' and profile_id in actor.contribute_profile_ids)
+        allowed = actor.role == 'admin' or (actor.role in {'owner', 'admin'} and profile_id in actor.owned_profile_ids) or (actor.role in {'contributor','owner'} and profile_id in actor.contribute_profile_ids)
     if not allowed:
         raise HTTPException(403, 'Scope does not permit this action')
