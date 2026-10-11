@@ -26,10 +26,10 @@ class ExtractionJob(Base):
     error: Mapped[str|None]
 
 def lock_scope(db,profile_id,version_id,model_id,actor_id,*,require_draft=True):
-    profile=db.scalar(select(Profile).where(Profile.id==profile_id).with_for_update())
-    version=db.scalar(select(KnowledgeVersion).where(KnowledgeVersion.id==version_id).with_for_update())
-    user=db.scalar(select(User).where(User.id==actor_id).with_for_update())
-    grant=db.scalar(select(ProfileGrant).where(ProfileGrant.profile_id==profile_id,ProfileGrant.user_id==actor_id).with_for_update())
+    profile=db.scalar(select(Profile).where(Profile.id==profile_id).with_for_update().execution_options(populate_existing=True))
+    version=db.scalar(select(KnowledgeVersion).where(KnowledgeVersion.id==version_id).with_for_update().execution_options(populate_existing=True))
+    user=db.scalar(select(User).where(User.id==actor_id).with_for_update().execution_options(populate_existing=True))
+    grant=db.scalar(select(ProfileGrant).where(ProfileGrant.profile_id==profile_id,ProfileGrant.user_id==actor_id).with_for_update().execution_options(populate_existing=True))
     if not profile or profile.archived or not user or not user.active: raise HTTPException(403,'Source scope is unavailable')
     actor=Actor(user.id,user.role,frozenset({profile.id}) if profile.owner_id==user.id else frozenset(),contribute_profile_ids=frozenset({profile.id}) if grant and grant.contribute else frozenset())
     authorize(actor,'write',profile.id)
@@ -73,7 +73,7 @@ def run_one(database,settings,provider=None,now=None):
             # Same profile-first order as all profile/content mutations.
             try: lock_scope(db,source.profile_id,source.knowledge_version_id,source.model_revision_id,source.uploaded_by)
             except HTTPException: error='Source author or draft scope is no longer authorized'
-            job=db.scalar(select(ExtractionJob).where(ExtractionJob.id==jid).with_for_update())
+            job=db.scalar(select(ExtractionJob).where(ExtractionJob.id==jid).with_for_update().execution_options(populate_existing=True))
             if not job or job.status!='running' or job.lease_token!=token or job.lease_until<=datetime.now(timezone.utc): return True
             job.lease_until=None; job.lease_token=None
             if error:

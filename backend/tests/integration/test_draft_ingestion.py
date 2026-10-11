@@ -153,3 +153,24 @@ def test_retry_exhaustion_and_revoked_contribution(client,db,tmp_path):
     client.put(f'/api/profiles/{p}/grants/{cid}',json={'contribute':False})
     assert run_one(db,client.app.state.settings,FakeProvider())
     assert client.get('/api/jobs/'+r['job_id']).json()['status']=='cancelled'
+
+import pytest
+@pytest.mark.parametrize('transition',['archive','rebind'])
+def test_lock_scope_refreshes_preloaded_version(client,db,transition):
+    from uuid import UUID
+    from fastapi import HTTPException
+    from knowledge_ai.profiles.models import KnowledgeVersion,Profile
+    from knowledge_ai.ontology.models import KnowledgeModelRevision
+    from knowledge_ai.ingestion.jobs import lock_scope
+    p,v,m=scope(client,db)
+    with db.sessions() as first:
+        cached=first.get(KnowledgeVersion,UUID(v))
+        with db.sessions() as second:
+            current=second.get(KnowledgeVersion,UUID(v))
+            if transition=='archive':current.status='archived'
+            else:
+                replacement=KnowledgeModelRevision(profile_id=UUID(p),revision=2,status='published',semantic_description='replacement')
+                second.add(replacement);second.flush();current.model_revision_id=replacement.id
+            second.commit()
+        with pytest.raises(HTTPException) as error:lock_scope(first,UUID(p),UUID(v),UUID(m),first.get(Profile,UUID(p)).owner_id)
+        assert error.value.status_code==409

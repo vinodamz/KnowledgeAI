@@ -20,7 +20,7 @@ async def upload(version_id:UUID,request:Request,file:UploadFile=File(...),sourc
     except InvalidSource as exc: raise HTTPException(422,str(exc))
     version=db.get(KnowledgeVersion,version_id)
     if not version: raise HTTPException(404,'Version not found')
-    lock_scope(db,version.profile_id,version.id,version.model_revision_id,actor.id)
+    version=lock_scope(db,version.profile_id,version.id,version.model_revision_id,actor.id)
     if source_id is not None:
         parent=db.scalar(select(SourceRevision).where(SourceRevision.source_id==source_id,SourceRevision.profile_id==version.profile_id,SourceRevision.knowledge_version_id==version.id).limit(1))
         if not parent: raise HTTPException(404,'Source identity not found in this version')
