@@ -14,3 +14,11 @@ data/
 node_modules/
 dist/
 .DS_Store
+
+# Angular generated output and browser traces
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+frontend/out-tsc/
+frontend/test-results/
+frontend/playwright-report/

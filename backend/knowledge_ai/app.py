@@ -56,6 +56,20 @@ def create_app(settings=None):
     def me(actor=Depends(current_actor)):
         return {'id': str(actor.id), 'role': actor.role, 'owned_profile_ids': sorted(map(str, actor.owned_profile_ids)), 'read_profile_ids': sorted(map(str, actor.read_profile_ids)), 'contribute_profile_ids': sorted(map(str, actor.contribute_profile_ids))}
 
+    @app.get('/api/auth/csrf')
+    def csrf_token(request: Request, response: Response, actor=Depends(current_actor)):
+        from knowledge_ai.governance.auth import session_csrf
+        origin = request.headers.get('origin')
+        if request.headers.get('sec-fetch-site') == 'cross-site' or (origin and origin.rstrip('/') != str(request.base_url).rstrip('/')):
+            raise HTTPException(403, 'Cross-origin session access refused')
+        token = URLSafeSerializer(settings.signing_secret, salt='session').loads(request.cookies['knowledge_ai_session'])
+        csrf = session_csrf(token, settings)
+        with database.sessions() as db:
+            db.get(AuthSession, digest(token)).csrf_hash = digest(csrf)
+            db.commit()
+        response.headers['Cache-Control'] = 'no-store'
+        return {'csrf_token': csrf}
+
     @app.post('/api/auth/logout', status_code=204)
     def logout(request: Request, response: Response, actor=Depends(current_actor)):
         token = URLSafeSerializer(settings.signing_secret, salt='session').loads(request.cookies['knowledge_ai_session'])
@@ -77,6 +91,8 @@ def create_app(settings=None):
     app.include_router(publication_router)
     from knowledge_ai.retrieval.routes import router as retrieval_router
     app.include_router(retrieval_router)
+    from knowledge_ai.activity import router as activity_router
+    app.include_router(activity_router)
     return app
 
 class Credentials(BaseModel):

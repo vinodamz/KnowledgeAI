@@ -1,4 +1,5 @@
 import hashlib
+import hmac
 import secrets
 from datetime import datetime, timedelta, timezone
 from fastapi import HTTPException, Request
@@ -38,8 +39,14 @@ def current_actor(request: Request):
                      contribute_profile_ids=frozenset(g.profile_id for g in grants if g.contribute))
 
 def issue_session(db, user, settings):
-    token, csrf = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
+    token = secrets.token_urlsafe(32)
+    csrf = session_csrf(token, settings)
     db.add(AuthSession(token_hash=digest(token), user_id=user.id, csrf_hash=digest(csrf),
                        expires_at=datetime.now(timezone.utc)+timedelta(seconds=settings.session_seconds)))
     cookie = URLSafeSerializer(settings.signing_secret, salt='session').dumps(token)
     return cookie, csrf
+
+
+def session_csrf(token, settings):
+    """Stable per authenticated session; recoverable across tabs without rotating peers."""
+    return hmac.new(settings.signing_secret.encode(), ("csrf:" + token).encode(), hashlib.sha256).hexdigest()

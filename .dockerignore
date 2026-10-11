@@ -9,6 +9,16 @@
 !backend/alembic.ini
 !deploy/
 !deploy/Dockerfile.api
+!deploy/Dockerfile.ui
+!deploy/nginx.conf
+!frontend/
+!frontend/package.json
+!frontend/package-lock.json
+!frontend/angular.json
+!frontend/tsconfig.json
+!frontend/tsconfig.app.json
+!frontend/src/
+!frontend/src/**
 # Private files remain excluded even inside permitted source directories.
 **/.env
 **/.env.*

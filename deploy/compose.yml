@@ -51,10 +51,12 @@ services:
     volumes:
       - objects:/data/objects
       - publications:/data/publications
-  # UI implementation and same-origin proxy arrive in Task 8.
   ui:
-    image: nginx:alpine
-    profiles: ["ui-placeholder"]
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.ui
+    depends_on:
+      - api
     ports:
       - "127.0.0.1:9630:80"
 volumes:
