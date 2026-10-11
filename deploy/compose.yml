@@ -1,0 +1,54 @@
+name: knowledge-ai
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: knowledgeai
+      POSTGRES_USER: knowledgeai
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U knowledgeai -d knowledgeai"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  migrate:
+    build: &build
+      context: ..
+      dockerfile: deploy/Dockerfile.api
+    environment: &backend-env
+      KNOWLEDGE_AI_DATABASE_URL: postgresql+psycopg://knowledgeai:${POSTGRES_PASSWORD}@postgres:5432/knowledgeai
+      KNOWLEDGE_AI_SIGNING_SECRET: ${KNOWLEDGE_AI_SIGNING_SECRET:?Set KNOWLEDGE_AI_SIGNING_SECRET}
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+  api:
+    build: *build
+    environment: *backend-env
+    ports:
+      - "127.0.0.1:9631:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    volumes:
+      - objects:/data/objects
+  worker:
+    build: *build
+    environment: *backend-env
+    command: ["python", "-m", "knowledge_ai.worker"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    volumes:
+      - objects:/data/objects
+  # UI implementation and same-origin proxy arrive in Task 8.
+  ui:
+    image: nginx:alpine
+    profiles: ["ui-placeholder"]
+    ports:
+      - "127.0.0.1:9630:80"
+volumes:
+  postgres-data:
+  objects:
