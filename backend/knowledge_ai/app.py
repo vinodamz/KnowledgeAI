@@ -67,6 +67,8 @@ def create_app(settings=None):
 
     from knowledge_ai.profiles.routes import router
     app.include_router(router)
+    from knowledge_ai.ontology.routes import router as ontology_router
+    app.include_router(ontology_router)
     return app
 
 class Credentials(BaseModel):

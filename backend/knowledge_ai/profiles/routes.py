@@ -59,7 +59,7 @@ def owner(db,key):
 def profile_json(p):
     return {'id':str(p.id),'kind':p.kind,'name':p.name,'owner_id':str(p.owner_id),'archived':p.archived}
 def version_json(db,v):
-    return {'id':str(v.id),'profile_id':str(v.profile_id),'label':v.label,'predecessor_id':str(v.predecessor_id) if v.predecessor_id else None,'status':v.status,'product_version_ids':sorted(str(x) for x in db.scalars(select(ProjectDependency.product_version_id).where(ProjectDependency.project_version_id==v.id)))}
+    return {'id':str(v.id),'profile_id':str(v.profile_id),'label':v.label,'predecessor_id':str(v.predecessor_id) if v.predecessor_id else None,'status':v.status,'model_revision_id':str(v.model_revision_id) if v.model_revision_id else None,'product_version_ids':sorted(str(x) for x in db.scalars(select(ProjectDependency.product_version_id).where(ProjectDependency.project_version_id==v.id)))}
 def user_json(u):
     return {'id':str(u.id),'username':u.username,'role':u.role,'active':u.active}
 

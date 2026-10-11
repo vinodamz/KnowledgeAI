@@ -20,6 +20,7 @@ class KnowledgeVersion(Base):
     label: Mapped[str] = mapped_column(String(200))
     predecessor_id: Mapped[UUID | None] = mapped_column(ForeignKey('knowledge_versions.id'))
     status: Mapped[str] = mapped_column(String(20), default='draft')
+    model_revision_id: Mapped[UUID | None] = mapped_column(ForeignKey('knowledge_model_revisions.id'))
 
 class ProjectDependency(Base):
     __tablename__ = 'project_dependencies'
