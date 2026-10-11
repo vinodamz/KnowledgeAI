@@ -5,14 +5,25 @@ from knowledge_ai.governance.audit import record_event
 from knowledge_ai.profiles.models import Profile, KnowledgeVersion, ProjectDependency
 
 def require(db, model, key, lock=False):
-    item = db.get(model,key,with_for_update=lock)
+    item = db.get(model,key,with_for_update=lock,populate_existing=lock)
     if item is None:
         raise HTTPException(404,'Record not found')
     return item
 
-def configure(actor, profile_id):
-    if actor.role != 'admin' and profile_id not in actor.owned_profile_ids:
+def configure(actor, profile_id, *, db):
+    """Lock the profile and validate live ownership in the mutation transaction.
+
+    Reassignment takes this same row lock, so detached request grants cannot
+    authorize a former owner after a transfer commits. Return the locked row.
+    """
+    profile = require(db, Profile, profile_id, True)
+    if actor.role != 'admin' and not (actor.role == 'owner' and profile.owner_id == actor.id):
         raise HTTPException(403,'Only the assigned owner or administrator may configure this profile')
+    return profile
+
+def validate_label(label):
+    if not label.strip() or len(label)>200:
+        raise HTTPException(422,'Invalid version label')
 
 def draft_access(actor, profile_id):
     authorize(actor,'read',profile_id)
@@ -20,12 +31,10 @@ def draft_access(actor, profile_id):
         raise HTTPException(403,'Draft access requires ownership or contribution grant')
 
 def create_version(actor, profile_id, label, predecessor_id=None, *, db):
-    configure(actor,profile_id)
-    profile = require(db,Profile,profile_id,True)
+    profile = configure(actor,profile_id,db=db)
     if profile.archived:
         raise HTTPException(409,'Archived profile')
-    if not label.strip() or len(label)>200:
-        raise HTTPException(422,'Invalid version label')
+    validate_label(label)
     if db.scalar(select(KnowledgeVersion).where(KnowledgeVersion.profile_id==profile_id,KnowledgeVersion.label==label)):
         raise HTTPException(409,'Version label already exists')
     predecessor = None
@@ -48,14 +57,15 @@ def create_version(actor, profile_id, label, predecessor_id=None, *, db):
     return version
 
 def set_dependencies(db,actor,version_id,product_version_ids):
+    version = require(db,KnowledgeVersion,version_id)
+    profile = configure(actor,version.profile_id,db=db)
     version = require(db,KnowledgeVersion,version_id,True)
-    configure(actor,version.profile_id)
-    profile = require(db,Profile,version.profile_id)
     if version.status != 'draft' or profile.kind != 'project' or profile.archived:
         raise HTTPException(409,'Only draft project versions accept dependencies')
     products = []
     scopes = set()
-    for key in set(product_version_ids):
+    # Lock order: target profile, target version, shared product versions by UUID.
+    for key in sorted(set(product_version_ids), key=str):
         product = require(db,KnowledgeVersion,key,True)
         authorize(actor,'read',product.profile_id)
         if product.status != 'released' or require(db,Profile,product.profile_id).kind != 'product' or product.profile_id in scopes:

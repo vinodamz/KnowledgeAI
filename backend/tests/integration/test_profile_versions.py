@@ -61,3 +61,11 @@ def test_multiple_product_pins_and_database_immutability(client,db):
     assert successor.json()['product_version_ids']==sorted(pins)
     assert client.patch(f'/api/versions/{v}',json={'status':'archived'}).status_code==200
     assert client.get(f'/api/versions/{v}').json()['product_version_ids']==sorted(pins)
+
+
+def test_draft_patch_rejects_whitespace_label(client,db):
+    ids=setup(client,db)
+    p=client.post('/api/profiles',json={'kind':'product','name':'P','owner_id':ids['owner-a']}).json()['id']
+    v=client.post(f'/api/profiles/{p}/versions',json={'label':'1'}).json()['id']
+    assert client.patch(f'/api/versions/{v}',json={'label':'   '}).status_code==422
+    assert client.get(f'/api/versions/{v}').json()['label']=='1'

@@ -79,3 +79,28 @@ def test_owner_reassignment_updates_authority(client,db):
     authenticate(client,'owner-b')
     assert client.get('/api/auth/me').json()['owned_profile_ids']==[pid]
     assert client.patch(f'/api/profiles/{pid}',json={'owner_id':ids['owner-a']}).status_code==403
+
+
+def test_inflight_former_owner_request_refused_after_reassignment(client,db):
+    from uuid import UUID
+    from knowledge_ai.governance.auth import current_actor
+    from knowledge_ai.governance.policy import Actor
+    from knowledge_ai.db import AuditEvent
+    from knowledge_ai.profiles.models import Profile
+    ids=setup(client,db)
+    pid=client.post('/api/profiles',json={'kind':'product','name':'P','owner_id':ids['owner-a']}).json()['id']
+    version=client.post(f'/api/profiles/{pid}/versions',json={'label':'1'}).json()['id']
+    stale=Actor(UUID(ids['owner-a']),'owner',owned_profile_ids=frozenset({UUID(pid)}))
+    assert client.patch(f'/api/profiles/{pid}',json={'owner_id':ids['owner-b']}).status_code==200
+    # Resume requests with the exact actor captured before transfer committed.
+    client.app.dependency_overrides[current_actor]=lambda: stale
+    try:
+        assert client.patch(f'/api/profiles/{pid}',json={'name':'Hijacked'}).status_code==403
+        assert client.post(f'/api/profiles/{pid}/versions',json={'label':'unauthorized'}).status_code==403
+        assert client.patch(f'/api/versions/{version}',json={'label':'Hijacked'}).status_code==403
+        assert client.put(f'/api/versions/{version}/dependencies',json={'product_version_ids':[]}).status_code==403
+    finally:
+        client.app.dependency_overrides.clear()
+    with db.sessions() as s:
+        assert s.get(Profile,pid).name=='P'
+        assert s.scalar(select(AuditEvent).where(AuditEvent.actor_id==UUID(ids['owner-a']))) is None

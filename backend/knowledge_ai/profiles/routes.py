@@ -9,7 +9,7 @@ from knowledge_ai.governance.auth import current_actor, passwords
 from knowledge_ai.governance.policy import authorize
 from knowledge_ai.governance.audit import record_event
 from knowledge_ai.profiles.models import Profile, KnowledgeVersion, ProjectDependency, ProfileGrant
-from knowledge_ai.profiles.service import require, configure, draft_access, create_version, set_dependencies
+from knowledge_ai.profiles.service import require, configure, draft_access, create_version, set_dependencies, validate_label
 
 router = APIRouter(prefix='/api')
 class Input(BaseModel):
@@ -87,8 +87,7 @@ def get_profile(profile_id:UUID,actor=Depends(current_actor),db=Depends(get_db))
 
 @router.patch('/profiles/{profile_id}')
 def patch_profile(profile_id:UUID,body:ProfilePatch,actor=Depends(current_actor),db=Depends(get_db)):
-    configure(actor,profile_id)
-    p=require(db,Profile,profile_id,True)
+    p=configure(actor,profile_id,db=db)
     values=body.model_dump(exclude_unset=True)
     if any(v is None for v in values.values()): raise HTTPException(422,'Null values refused')
     if 'owner_id' in values:
@@ -122,10 +121,12 @@ def get_version(version_id:UUID,actor=Depends(current_actor),db=Depends(get_db))
 
 @router.patch('/versions/{version_id}')
 def patch_version(version_id:UUID,body:VersionPatch,actor=Depends(current_actor),db=Depends(get_db)):
+    v=require(db,KnowledgeVersion,version_id)
+    configure(actor,v.profile_id,db=db)
     v=require(db,KnowledgeVersion,version_id,True)
-    configure(actor,v.profile_id)
     values=body.model_dump(exclude_unset=True)
     if any(x is None for x in values.values()): raise HTTPException(422,'Null values refused')
+    if 'label' in values: validate_label(body.label)
     if body.status=='released': raise HTTPException(409,'Release requires a verified publication snapshot; use the release workflow')
     if v.status!='draft' and values and values!={'status':'archived'}:
         raise HTTPException(409,'Released or archived version is immutable')
