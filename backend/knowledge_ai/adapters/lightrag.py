@@ -234,3 +234,48 @@ class LightRAGAdapter:
         if json.loads((directory / 'verified.json').read_text()) != report: raise ValueError('Index seal mismatch')
         for partition in report['partitions'].values():
             if files_digest(directory / partition['workspace']) != partition['digest']: raise ValueError('Verified partition changed')
+
+class SealedPartitionReader:
+    """Read official SDK persistence directly. Never initialize or flush LightRAG."""
+    def read(self, partition, dimensions):
+        import networkx as nx
+        from fastapi import HTTPException
+        try:
+            root = partition.directory / partition.workspace
+            chunks = json.loads((root / 'kv_store_text_chunks.json').read_text())
+            graph = nx.read_graphml(root / 'graph_chunk_entity_relation.graphml')
+            vectors = {}
+            for namespace in ('entities', 'relationships', 'chunks'):
+                data = json.loads((root / f'vdb_{namespace}.json').read_text())
+                matrix = np.frombuffer(base64.b64decode(data['matrix'], validate=True), dtype=np.float32).reshape(len(data['data']), dimensions)
+                if data['embedding_dim'] != dimensions or not np.isfinite(matrix).all() or (len(matrix) and (not np.isfinite(np.linalg.norm(matrix, axis=1)).all() or not (np.linalg.norm(matrix, axis=1) > 0).all())):
+                    raise ValueError('Invalid vector matrix')
+                vectors[namespace] = (data['data'], matrix)
+            return chunks, graph, vectors
+        except Exception:
+            raise HTTPException(503, 'Published index cannot be read') from None
+
+class QueryEmbeddingProvider:
+    """Bound both embedding response bytes and overall call duration."""
+    def __init__(self, settings, *, transport=None, deadline=60):
+        self.settings, self.transport, self.deadline = settings, transport, deadline
+
+    async def _request(self, query):
+        async with httpx.AsyncClient(timeout=httpx.Timeout(60, connect=10), transport=self.transport, follow_redirects=False) as client:
+            async with client.stream('POST', self.settings.embedding_base_url.rstrip('/') + '/api/embed', json={'model': self.settings.embedding_model, 'input': [query]}, headers={'accept-encoding': 'identity'}) as response:
+                if response.status_code != 200 or response.headers.get('content-encoding', 'identity') != 'identity': raise ValueError('Embedding request failed')
+                content = bytearray()
+                async for chunk in response.aiter_raw(chunk_size=8192):
+                    if len(content) + len(chunk) > 500_000: raise ValueError('Embedding response exceeds limit')
+                    content.extend(chunk)
+                return json.loads(content)['embeddings']
+
+    def embed(self, query):
+        from fastapi import HTTPException
+        async def bounded(): return await asyncio.wait_for(self._request(query), self.deadline)
+        try:
+            values = np.asarray(asyncio.run(bounded()), dtype=np.float32)
+            if values.shape != (1, self.settings.embedding_dimensions) or not np.isfinite(values).all() or not np.isfinite(np.linalg.norm(values[0])) or not np.linalg.norm(values[0]) > 0: raise ValueError('Invalid query embedding')
+            return values[0]
+        except Exception:
+            raise HTTPException(503, 'Query embedding unavailable or incompatible') from None
