@@ -1,0 +1,94 @@
+name: knowledge-ai-portable
+x-backend: &backend
+  image: ghcr.io/vinodamz/knowledge-ai-api:${KNOWLEDGE_AI_IMAGE_TAG:-demo}
+  environment: &backend-env
+    KNOWLEDGE_AI_DATABASE_URL: postgresql+psycopg://knowledgeai:${POSTGRES_PASSWORD:?Generate .env first}@postgres:5432/knowledgeai
+    KNOWLEDGE_AI_SIGNING_SECRET: ${KNOWLEDGE_AI_SIGNING_SECRET:?Generate .env first}
+    KNOWLEDGE_AI_GEMINI_API_KEY: ${KNOWLEDGE_AI_GEMINI_API_KEY:?Set your Gemini key in .env}
+    KNOWLEDGE_AI_GEMINI_MODEL: ${KNOWLEDGE_AI_GEMINI_MODEL:-gemini-flash-latest}
+    KNOWLEDGE_AI_OBJECT_DIRECTORY: /data/objects
+    KNOWLEDGE_AI_PUBLICATION_DIRECTORY: /data/publications
+    KNOWLEDGE_AI_EMBEDDING_BASE_URL: http://ollama:11434
+    KNOWLEDGE_AI_EMBEDDING_MODEL: nomic-embed-text
+    KNOWLEDGE_AI_EMBEDDING_DIMENSIONS: 768
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: knowledgeai
+      POSTGRES_USER: knowledgeai
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Generate .env first}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U knowledgeai -d knowledgeai"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+  ollama:
+    image: ollama/ollama@sha256:adca95a12c2b386a8f9a995e7fa0600e187e3323b5e5522f5a6c3b1ec73eff99
+    volumes:
+      - ollama-models:/root/.ollama
+    healthcheck:
+      test: [CMD, ollama, list]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 15s
+    restart: unless-stopped
+  embedding-model:
+    image: ollama/ollama@sha256:adca95a12c2b386a8f9a995e7fa0600e187e3323b5e5522f5a6c3b1ec73eff99
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    command: [pull, nomic-embed-text]
+    depends_on:
+      ollama:
+        condition: service_healthy
+  migrate:
+    <<: *backend
+    command: [alembic, upgrade, head]
+    depends_on:
+      postgres:
+        condition: service_healthy
+  api:
+    <<: *backend
+    ports:
+      - "127.0.0.1:${KNOWLEDGE_AI_API_PORT:-9631}:8000"
+    volumes:
+      - objects:/data/objects
+      - publications:/data/publications:ro
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ready', timeout=3)"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    restart: unless-stopped
+  worker:
+    <<: *backend
+    command: [python, -m, knowledge_ai.worker]
+    volumes:
+      - objects:/data/objects
+      - publications:/data/publications
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      embedding-model:
+        condition: service_completed_successfully
+    restart: unless-stopped
+  ui:
+    image: ghcr.io/vinodamz/knowledge-ai-ui:${KNOWLEDGE_AI_IMAGE_TAG:-demo}
+    ports:
+      - "127.0.0.1:${KNOWLEDGE_AI_UI_PORT:-9630}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+volumes:
+  postgres-data:
+  objects:
+  publications:
+  ollama-models:

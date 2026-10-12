@@ -12,6 +12,8 @@ Start with `docker compose --env-file .env -f deploy/compose.yml up --build -d`,
 
 ## Documents
 
+- [Install on another PC using Docker](docs/runbooks/install-on-another-pc.md)
+- [Build/publish portable Docker images](.github/workflows/publish-demo-images.yml)
 - [Architecture reference](docs/architecture/KnowledgeAI%20Architecture-working-file.pptx)
 - [Design specification](docs/superpowers/specs/2026-10-11-knowledge-ai-design.md)
 - [Stage 1 implementation plan and later roadmap](docs/superpowers/plans/2026-10-11-knowledge-ai.md)

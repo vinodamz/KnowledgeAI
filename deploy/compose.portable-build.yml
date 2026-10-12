@@ -1,0 +1,13 @@
+services:
+  migrate:
+    build: &backend-build
+      context: ..
+      dockerfile: deploy/Dockerfile.api
+  api:
+    build: *backend-build
+  worker:
+    build: *backend-build
+  ui:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.ui
