@@ -4,7 +4,7 @@ Governed, version-aware product and implementation knowledge, consolidated into 
 
 ## Current status
 
-Stage 1 development preview is implemented and running locally. Backend tasks 1–7 passed their review gates: authentication, profiles/versions, model authoring, Gemini draft extraction, exact-revision owner review, verified publication and scoped cited retrieval. The Angular administration UI builds and runs in Docker; nine browser acceptance scenarios passed against an isolated PostgreSQL/real-SDK test stack with deterministic injected providers. Task 8 review sign-off and Task 9 release snapshots/source changes/operating proof remain pending. Stage 1 is not yet complete.
+Stage 1 development preview is implemented and running locally. Backend tasks 1–7 passed their review gates: authentication, profiles/versions, model authoring, Gemini draft extraction, exact-revision owner review, verified publication and scoped cited retrieval. The Angular administration UI builds and runs in Docker and passed its review gate. Ten workflow and compact-layout browser scenarios passed against an isolated PostgreSQL/real-SDK test stack with deterministic injected providers. This demo excludes Task 9 release snapshots/source changes; the remaining live-provider and operating proof is tracked on the development branch. Stage 1 is not yet complete.
 
 The workspace uses compact top navigation: Knowledge, Review and Ask. Profiles, Knowledge Models and Activity are available under Manage; profile and knowledge version remain visible above the page. Manage supports keyboard navigation, Escape and outside-click dismissal.
 
