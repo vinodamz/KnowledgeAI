@@ -47,7 +47,7 @@ If registry authentication is unavailable, build from the cloned source. No regi
 
 ```sh
 docker compose --env-file .env -f deploy/compose.portable.yml -f deploy/compose.portable-build.yml build
-docker compose --env-file .env -f deploy/compose.portable.yml -f deploy/compose.portable-build.yml up -d --pull never
+docker compose --env-file .env -f deploy/compose.portable.yml -f deploy/compose.portable-build.yml up -d --pull missing
 ```
 
 The build chooses the host's native architecture. Base images and the embedding model still require internet access. On the first startup, model download can take a few minutes. Wait for `embedding-model` and `migrate` to finish successfully; an exited code 0 for those services is normal.
