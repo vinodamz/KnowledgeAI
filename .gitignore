@@ -22,3 +22,4 @@ frontend/.angular/
 frontend/out-tsc/
 frontend/test-results/
 frontend/playwright-report/
+.gstack/

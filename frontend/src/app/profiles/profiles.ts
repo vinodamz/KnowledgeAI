@@ -1,14 +1,14 @@
 import {Component,effect,inject,signal,untracked} from '@angular/core';
 import {FormsModule} from '@angular/forms';
-import {RouterLink} from '@angular/router';
+import {RouterLink,ActivatedRoute} from '@angular/router';
 import {Api} from '../core/api';
 import {User,Grant,Version,Schema} from '../core/contracts';
 @Component({selector:'ka-profiles',imports:[FormsModule,RouterLink],templateUrl:'./profiles.html'})
 export class Profiles{
- api=inject(Api);users=signal<User[]>([]);products=signal<(Version&{profileName:string})[]>([]);grants:Record<string,Grant>={};
+ api=inject(Api);route=inject(ActivatedRoute);users=signal<User[]>([]);products=signal<(Version&{profileName:string})[]>([]);grants:Record<string,Grant>={};
  profileName='';kind:'product'|'project'='product';ownerId='';assignedOwner='';versionLabel='';predecessor='';pins:string[]=[];newUsername='';newPassword='';newRole:User['role']='reader';
  get owners(){return this.users().filter(u=>u.active&&['admin','owner'].includes(u.role));}
- constructor(){effect(()=>{const id=this.api.profileId();const version=this.api.versionId();untracked(()=>void this.load(id,version));});}
+ constructor(){this.route.paramMap.subscribe(params=>{const id=params.get('id');if(id&&id!==this.api.profileId())this.select(id);});effect(()=>{const id=this.api.profileId();const version=this.api.versionId();untracked(()=>void this.load(id,version));});}
  async load(id:string,_version:string){await this.api.run(async()=>{if(this.api.isAdmin){const users=await this.api.request<User[]>('/users');for(const u of users)this.grants[u.id]={user_id:u.id,read:false,contribute:false};if(id)for(const g of await this.api.request<Grant[]>('/profiles/'+id+'/grants'))this.grants[g.user_id]=g;this.users.set(users);}this.assignedOwner=this.api.profile?.owner_id||'';this.pins=[...(this.api.version?.product_version_ids||[])];const ps=this.api.profiles().filter(p=>p.kind==='product');const vs=await Promise.all(ps.map(async p=>(await this.api.request<Version[]>('/profiles/'+p.id+'/versions')).map(v=>({...v,profileName:p.name}))));this.products.set(vs.flat());});}
  refresh(){void this.api.run(async()=>{await this.api.reload();await this.load(this.api.profileId(),this.api.versionId());});}
  select(id:string){void this.api.run(()=>this.api.selectProfile(id));}
