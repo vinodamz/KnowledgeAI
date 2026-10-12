@@ -1,10 +1,240 @@
-<div class="page-heading"><div><p class="eyebrow">KNOWLEDGE REGISTRY</p><h1>Profiles & versions</h1><p class="muted">Keep product knowledge distinct from project implementation.</p></div><button (click)="refresh()">Refresh registry</button></div>
-<div class="profile-grid">@for(p of api.profiles();track p.id){<a class="profile-card" [class.selected]="p.id===api.profileId()" [routerLink]="['/profiles',p.id,'versions']" (click)="select(p.id)"><span class="eyebrow">{{p.kind}}</span><h2>{{p.name}}</h2><span class="muted">{{p.archived?'Archived':'Active profile'}} →</span></a>}@empty{<div class="empty"><h2>No profiles available</h2><p>{{api.isAdmin?'Create a profile and assign its owner below.':'Ask an administrator for a profile grant.'}}</p></div>}</div>
-@if(api.isAdmin){<details class="panel"><summary>Create profile</summary><form class="form-grid" (ngSubmit)="createProfile()"><label>Name<input name="profileName" [(ngModel)]="profileName" required maxlength="200"></label><label>Kind<select name="kind" [(ngModel)]="kind"><option value="product">Product</option><option value="project">Project</option></select></label><label>Assigned owner<select name="owner" [(ngModel)]="ownerId" required><option value="">Choose an active owner</option>@for(u of owners;track u.id){<option [value]="u.id">{{u.username}}</option>}</select></label><button class="primary" [disabled]="api.busy()">Create profile</button></form></details>}
-@if(api.profile){<section class="panel"><p class="eyebrow">{{api.profile.kind}} PROFILE</p><h2>{{api.profile.name}} versions</h2><table><thead><tr><th>Version</th><th>Status</th><th>Model binding</th><th></th></tr></thead><tbody>@for(v of api.versions();track v.id){<tr><td><code>{{v.label}}</code></td><td><span class="tag">{{v.status}}</span></td><td>{{v.model_revision_id?'Published model bound':'No model bound'}}</td><td><button (click)="api.selectVersion(v.id)" [class.primary]="v.id===api.versionId()">{{v.id===api.versionId()?'Selected':'Select version'}}</button></td></tr>}@empty{<tr><td colspan="4">No versions yet. Create the first version to begin.</td></tr>}</tbody></table>
-@if(api.canOwn||api.isAdmin){<form class="form-grid" (ngSubmit)="createVersion()"><label>New version label<input name="versionLabel" [(ngModel)]="versionLabel" required maxlength="200"></label><label>Predecessor<select name="predecessor" [(ngModel)]="predecessor"><option value="">No predecessor</option>@for(v of api.versions();track v.id){<option [value]="v.id">{{v.label}}</option>}</select></label><button [disabled]="api.busy()">Create version</button></form>}
-@if(api.version){<div class="inset"><h3>Selected version · {{api.version.label}}</h3><p class="muted">{{api.version.status==='draft'?'Authoring version. Only published facts may enter answers.':'Immutable knowledge snapshot.'}}</p><p><strong>Release workflow</strong> · Available after verified release snapshots are implemented.</p><button disabled title="Release snapshots are a later implementation milestone">Release version</button><button disabled title="Source-change proposals are a later implementation milestone">Propose source change</button></div>}
-@if(api.version&&api.profile.kind==='project'&&(api.canOwn||api.isAdmin)){<form class="inset" (ngSubmit)="savePins()"><h3>Pinned product versions</h3><p class="muted">Select exact product versions. Changes affect only this draft project version.</p>@for(v of products();track v.id){<label class="check"><input type="checkbox" [name]="v.id" [checked]="pins.includes(v.id)" (change)="togglePin(v.id)" [disabled]="api.version.status!=='draft'">{{v.profileName}} / {{v.label}} · {{v.status}}</label>}@empty{<p>No accessible product versions. Create a product version first.</p>}<button [disabled]="api.busy()||api.version.status!=='draft'">Save dependency pins</button></form>}
-</section>}
-@if(api.isAdmin&&api.profile){<details class="panel"><summary>Ownership & access</summary><form class="form-grid" (ngSubmit)="assignOwner()"><label>Assigned owner<select name="assignOwner" [(ngModel)]="assignedOwner">@for(u of owners;track u.id){<option [value]="u.id">{{u.username}}</option>}</select></label><button>Assign owner</button></form><h3>Profile grants</h3><table><thead><tr><th>User</th><th>Read</th><th>Contribute</th><th></th></tr></thead><tbody>@for(u of users();track u.id){<tr><td>{{u.username}} <small>{{u.role}}</small></td><td><input type="checkbox" [attr.aria-label]="'Read access for '+u.username" [(ngModel)]="grants[u.id].read"></td><td><input type="checkbox" [attr.aria-label]="'Contribution access for '+u.username" [(ngModel)]="grants[u.id].contribute" [disabled]="u.role==='reader'"></td><td><button (click)="saveGrant(u.id)">Save grant</button></td></tr>}</tbody></table></details>}
-@if(api.isAdmin){<details class="panel"><summary>Users</summary><form class="form-grid" (ngSubmit)="createUser()"><label>New username<input name="newUsername" autocomplete="off" [(ngModel)]="newUsername" required></label><label>Initial password<input name="newPassword" type="password" autocomplete="new-password" [(ngModel)]="newPassword" minlength="12" required></label><label>Role<select name="newRole" [(ngModel)]="newRole"><option>reader</option><option>contributor</option><option>owner</option><option>admin</option></select></label><button>Create user</button></form><ul class="rows">@for(u of users();track u.id){<li><span>{{u.username}} <span class="tag">{{u.role}}</span></span><button (click)="toggleUser(u)" [disabled]="u.id===api.actor()?.id">{{u.active?'Disable':'Enable'}}</button></li>}</ul></details>}
+<div class="page-heading">
+  <div>
+    <p class="eyebrow">KNOWLEDGE REGISTRY</p>
+    <h1>Profiles & versions</h1>
+    <p class="muted">
+      Keep product knowledge distinct from project implementation.
+    </p>
+  </div>
+  <button (click)="refresh()">Refresh registry</button>
+</div>
+<div class="profile-grid">
+  @for(p of api.profiles();track p.id){<a
+    class="profile-card"
+    [class.selected]="p.id===api.profileId()"
+    [routerLink]="['/profiles',p.id,'versions']"
+    (click)="select(p.id)"
+    ><span class="eyebrow">{{p.kind}}</span>
+    <h2>{{p.name}}</h2>
+    <span class="muted">{{p.archived?'Archived':'Active profile'}} →</span></a
+  >}@empty{
+  <div class="empty">
+    <h2>No profiles available</h2>
+    <p>
+      {{api.isAdmin?'Create a profile and assign its owner below.':'Ask an
+      administrator for a profile grant.'}}
+    </p>
+  </div>
+  }
+</div>
+@if(api.isAdmin){
+<details class="panel">
+  <summary>Create profile</summary>
+  <form class="form-grid" (ngSubmit)="createProfile()">
+    <label
+      >Name<input
+        name="profileName"
+        [(ngModel)]="profileName"
+        required
+        maxlength="200" /></label
+    ><label
+      >Kind<select name="kind" [(ngModel)]="kind">
+        <option value="product">Product</option>
+        <option value="project">Project</option>
+      </select></label
+    ><label
+      >Assigned owner<select name="owner" [(ngModel)]="ownerId" required>
+        <option value="">Choose an active owner</option>
+        @for(u of owners;track u.id){
+        <option [value]="u.id">{{u.username}}</option>
+        }
+      </select></label
+    ><button class="primary" [disabled]="api.busy()">Create profile</button>
+  </form>
+</details>
+} @if(api.profile){
+<section class="panel">
+  <p class="eyebrow">{{api.profile.kind}} PROFILE</p>
+  <h2>{{api.profile.name}} versions</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Version</th>
+        <th>Status</th>
+        <th>Model binding</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for(v of api.versions();track v.id){
+      <tr>
+        <td><code>{{v.label}}</code></td>
+        <td><span class="tag">{{v.status}}</span></td>
+        <td>
+          {{v.model_revision_id?'Published model bound':'No model bound'}}
+        </td>
+        <td>
+          <button
+            (click)="api.selectVersion(v.id)"
+            [class.primary]="v.id===api.versionId()"
+          >
+            {{v.id===api.versionId()?'Selected':'Select version'}}
+          </button>
+        </td>
+      </tr>
+      }@empty{
+      <tr>
+        <td colspan="4">No versions yet. Create the first version to begin.</td>
+      </tr>
+      }
+    </tbody>
+  </table>
+  @if(api.canOwn||api.isAdmin){
+  <form class="form-grid" (ngSubmit)="createVersion()">
+    <label
+      >New version label<input
+        name="versionLabel"
+        [(ngModel)]="versionLabel"
+        required
+        maxlength="200" /></label
+    ><label
+      >Predecessor<select name="predecessor" [(ngModel)]="predecessor">
+        <option value="">No predecessor</option>
+        @for(v of api.versions();track v.id){
+        <option [value]="v.id">{{v.label}}</option>
+        }
+      </select></label
+    ><button [disabled]="api.busy()">Create version</button>
+  </form>
+  } @if(api.version){
+  <div class="inset">
+    <h3>Selected version · {{api.version.label}}</h3>
+    <p class="muted">
+      {{api.version.status==='draft'?'Authoring version. Only published facts
+      may enter answers.':'Immutable knowledge snapshot.'}}
+    </p>
+    <p>
+      <strong>Release workflow</strong> · Available after verified release
+      snapshots are implemented.
+    </p>
+    <button
+      disabled
+      title="Release snapshots are a later implementation milestone"
+    >
+      Release version</button
+    ><button
+      disabled
+      title="Source-change proposals are a later implementation milestone"
+    >
+      Propose source change
+    </button>
+  </div>
+  } @if(api.version&&api.profile.kind==='project'&&(api.canOwn||api.isAdmin)){
+  <form class="inset" (ngSubmit)="savePins()">
+    <h3>Pinned product versions</h3>
+    <p class="muted">
+      Select exact product versions. Changes affect only this draft project
+      version.
+    </p>
+    @for(v of products();track v.id){<label class="check"
+      ><input
+        type="checkbox"
+        [name]="v.id"
+        [checked]="pins.includes(v.id)"
+        (change)="togglePin(v.id)"
+        [disabled]="api.version.status!=='draft'"
+      />{{v.profileName}} / {{v.label}} · {{v.status}}</label
+    >}@empty{
+    <p>No accessible product versions. Create a product version first.</p>
+    }<button [disabled]="api.busy()||api.version.status!=='draft'">
+      Save dependency pins
+    </button>
+  </form>
+  }
+</section>
+} @if(api.isAdmin&&api.profile){
+<details class="panel">
+  <summary>Ownership & access</summary>
+  <form class="form-grid" (ngSubmit)="assignOwner()">
+    <label
+      >Assigned owner<select name="assignOwner" [(ngModel)]="assignedOwner">
+        @for(u of owners;track u.id){
+        <option [value]="u.id">{{u.username}}</option>
+        }
+      </select></label
+    ><button>Assign owner</button>
+  </form>
+  <h3>Profile grants</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>User</th>
+        <th>Read</th>
+        <th>Contribute</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for(u of users();track u.id){
+      <tr>
+        <td>{{u.username}} <small>{{u.role}}</small></td>
+        <td>
+          <input
+            type="checkbox"
+            [attr.aria-label]="'Read access for '+u.username"
+            [(ngModel)]="grants[u.id].read"
+          />
+        </td>
+        <td>
+          <input
+            type="checkbox"
+            [attr.aria-label]="'Contribution access for '+u.username"
+            [(ngModel)]="grants[u.id].contribute"
+            [disabled]="u.role==='reader'"
+          />
+        </td>
+        <td><button (click)="saveGrant(u.id)">Save grant</button></td>
+      </tr>
+      }
+    </tbody>
+  </table>
+</details>
+} @if(api.isAdmin){
+<details class="panel">
+  <summary>Users</summary>
+  <form class="form-grid" (ngSubmit)="createUser()">
+    <label
+      >New username<input
+        name="newUsername"
+        autocomplete="off"
+        [(ngModel)]="newUsername"
+        required /></label
+    ><label
+      >Initial password<input
+        name="newPassword"
+        type="password"
+        autocomplete="new-password"
+        [(ngModel)]="newPassword"
+        minlength="12"
+        required /></label
+    ><label
+      >Role<select name="newRole" [(ngModel)]="newRole">
+        <option>reader</option>
+        <option>contributor</option>
+        <option>owner</option>
+        <option>admin</option>
+      </select></label
+    ><button>Create user</button>
+  </form>
+  <ul class="rows">
+    @for(u of users();track u.id){
+    <li>
+      <span>{{u.username}} <span class="tag">{{u.role}}</span></span
+      ><button (click)="toggleUser(u)" [disabled]="u.id===api.actor()?.id">
+        {{u.active?'Disable':'Enable'}}
+      </button>
+    </li>
+    }
+  </ul>
+</details>
+}

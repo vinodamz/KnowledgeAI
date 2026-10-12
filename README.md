@@ -4,7 +4,7 @@ Governed, version-aware product and implementation knowledge, consolidated into 
 
 ## Current status
 
-Stage 1 development preview is implemented and running locally. Backend tasks 1–7 passed their review gates: authentication, profiles/versions, model authoring, Gemini draft extraction, exact-revision owner review, verified publication and scoped cited retrieval. The Angular administration checkpoint builds and runs in Docker; full browser acceptance and Task 9 release snapshots/source changes/operating proof remain pending. Stage 1 is not yet complete.
+Stage 1 development preview is implemented and running locally. Backend tasks 1–7 passed their review gates: authentication, profiles/versions, model authoring, Gemini draft extraction, exact-revision owner review, verified publication and scoped cited retrieval. The Angular administration UI builds and runs in Docker; nine browser acceptance scenarios passed against an isolated PostgreSQL/real-SDK test stack with deterministic injected providers. Task 8 review sign-off and Task 9 release snapshots/source changes/operating proof remain pending. Stage 1 is not yet complete.
 
 Open **http://localhost:9630** for Knowledge AI. The API binds to loopback port 9631. The existing LightRAG prototype on port 9621 remains separate.
 

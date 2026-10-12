@@ -1,11 +1,156 @@
-import {Component,inject} from '@angular/core';
-import {FormsModule} from '@angular/forms';
-import {RouterLink,RouterLinkActive,RouterOutlet} from '@angular/router';
-import {Api} from './core/api';
-@Component({selector:'ka-app',imports:[FormsModule,RouterLink,RouterLinkActive,RouterOutlet],template:`
-<a class="skip" href="#main">Skip to content</a>
-@if(!api.ready()){<main class="login"><p role="status">Opening your workspace…</p></main>}
-@else if(!api.actor()) {<main class="login" id="main"><div class="brand-mark">K<span>AI</span></div><h1>Knowledge AI</h1><p class="muted">Governed knowledge. Traceable answers.</p><form (ngSubmit)="signin()"><h2>Sign in</h2><label>Username<input name="username" autocomplete="username" [(ngModel)]="username" required></label><label>Password<input name="password" type="password" autocomplete="current-password" [(ngModel)]="password" required></label><button class="primary" [disabled]="api.busy()">Sign in</button></form>@if(api.error()){<p class="alert error" role="alert">{{api.error()}}</p>}</main>}
-@else {<div class="shell"><aside class="sidebar"><a routerLink="/profiles" class="brand"><div class="brand-mark">K<span>AI</span></div><strong>Knowledge AI</strong></a><p class="eyebrow">WORKSPACE</p><nav aria-label="Main navigation">@for(item of nav;track item.path){<a [routerLink]="item.path" routerLinkActive="active"><span aria-hidden="true">{{item.icon}}</span>{{item.name}}</a>}</nav><div class="scope"><label>Profile<select aria-label="Profile" [ngModel]="api.profileId()" (ngModelChange)="api.run(selectProfile.bind(this,$event))"><option value="">Select profile</option>@for(p of api.profiles();track p.id){<option [value]="p.id">{{p.name}} · {{p.kind}}</option>}</select></label><label>Knowledge version<select aria-label="Knowledge version" [ngModel]="api.versionId()" (ngModelChange)="api.selectVersion($event)"><option value="">Select version</option>@for(v of api.versions();track v.id){<option [value]="v.id">{{v.label}} · {{v.status}}</option>}</select></label><small>Model revision is bound separately.</small></div><footer><span class="avatar">{{api.actor()?.role?.slice(0,1)?.toUpperCase()}}</span><div><strong>{{api.actor()?.role}}</strong><small>Authenticated session</small></div><button class="quiet" (click)="api.run(logout.bind(this))">Sign out</button></footer></aside><div class="workspace"><header class="topbar"><span>{{api.profile?.name || 'Choose a profile'}} <span class="muted">/ {{api.version?.label || 'Knowledge workspace'}}</span></span><span class="tag">{{api.version?.status || 'No version selected'}}</span></header><main id="main" tabindex="-1">@if(api.error()){<div class="alert error" role="alert">{{api.error()}}<button class="quiet" (click)="api.error.set('')" aria-label="Dismiss error">×</button></div>}@if(api.notice()){<div class="alert success" role="status">{{api.notice()}}</div>}@if(api.busy()){<div class="working" role="status">Working…</div>}<router-outlet/></main></div></div>}
-`})
-export class App {api=inject(Api);username='';password='';nav=[{path:'/profiles',name:'Profiles',icon:'▦'},{path:'/models',name:'Knowledge Models',icon:'◇'},{path:'/review',name:'Review Inbox',icon:'✓'},{path:'/graph',name:'Central Graph',icon:'⌘'},{path:'/ask',name:'Ask Knowledge AI',icon:'?'},{path:'/activity',name:'Activity',icon:'≡'}];constructor(){void this.api.init();}signin(){void this.api.run(async()=>{await this.api.login(this.username,this.password);this.password='';});}async selectProfile(id:string){await this.api.selectProfile(id);}async logout(){await this.api.logout();}}
+import { Component, inject } from "@angular/core";
+import { FormsModule } from "@angular/forms";
+import { RouterLink, RouterLinkActive, RouterOutlet } from "@angular/router";
+import { Api } from "./core/api";
+@Component({
+  selector: "ka-app",
+  imports: [FormsModule, RouterLink, RouterLinkActive, RouterOutlet],
+  template: `
+    <a class="skip" href="#main">Skip to content</a>
+    @if (!api.ready()) {
+      <main class="login"><p role="status">Opening your workspace…</p></main>
+    } @else if (!api.actor()) {
+      <main class="login" id="main">
+        <div class="brand-mark">K<span>AI</span></div>
+        <h1>Knowledge AI</h1>
+        <p class="muted">Governed knowledge. Traceable answers.</p>
+        <form (ngSubmit)="signin()">
+          <h2>Sign in</h2>
+          <label
+            >Username<input
+              name="username"
+              autocomplete="username"
+              [(ngModel)]="username"
+              required /></label
+          ><label
+            >Password<input
+              name="password"
+              type="password"
+              autocomplete="current-password"
+              [(ngModel)]="password"
+              required /></label
+          ><button class="primary" [disabled]="api.busy()">Sign in</button>
+        </form>
+        @if (api.error()) {
+          <p class="alert error" role="alert">{{ api.error() }}</p>
+        }
+      </main>
+    } @else {
+      <div class="shell">
+        <aside class="sidebar">
+          <a routerLink="/profiles" class="brand"
+            ><div class="brand-mark">K<span>AI</span></div>
+            <strong>Knowledge AI</strong></a
+          >
+          <p class="eyebrow">WORKSPACE</p>
+          <nav aria-label="Main navigation">
+            @for (item of nav; track item.path) {
+              <a [routerLink]="item.path" routerLinkActive="active"
+                ><span aria-hidden="true">{{ item.icon }}</span
+                >{{ item.name }}</a
+              >
+            }
+          </nav>
+          <div class="scope">
+            <label
+              >Profile<select
+                aria-label="Profile"
+                [ngModel]="api.profileId()"
+                (ngModelChange)="api.run(selectProfile.bind(this, $event))"
+              >
+                <option value="">Select profile</option>
+                @for (p of api.profiles(); track p.id) {
+                  <option [value]="p.id">{{ p.name }} · {{ p.kind }}</option>
+                }
+              </select></label
+            ><label
+              >Knowledge version<select
+                aria-label="Knowledge version"
+                [ngModel]="api.versionId()"
+                (ngModelChange)="api.selectVersion($event)"
+              >
+                <option value="">Select version</option>
+                @for (v of api.versions(); track v.id) {
+                  <option [value]="v.id">{{ v.label }} · {{ v.status }}</option>
+                }
+              </select></label
+            ><small>Model revision is bound separately.</small>
+          </div>
+          <footer>
+            <span class="avatar">{{
+              api.actor()?.role?.slice(0, 1)?.toUpperCase()
+            }}</span>
+            <div>
+              <strong>{{ api.actor()?.role }}</strong
+              ><small>Authenticated session</small>
+            </div>
+            <button class="quiet" (click)="api.run(logout.bind(this))">
+              Sign out
+            </button>
+          </footer>
+        </aside>
+        <div class="workspace">
+          <header class="topbar">
+            <span
+              >{{ api.profile?.name || "Choose a profile" }}
+              <span class="muted"
+                >/ {{ api.version?.label || "Knowledge workspace" }}</span
+              ></span
+            ><span class="tag">{{
+              api.version?.status || "No version selected"
+            }}</span>
+          </header>
+          <main id="main" tabindex="-1">
+            @if (api.error()) {
+              <div class="alert error" role="alert">
+                {{ api.error()
+                }}<button
+                  class="quiet"
+                  (click)="api.error.set('')"
+                  aria-label="Dismiss error"
+                >
+                  ×
+                </button>
+              </div>
+            }
+            @if (api.notice()) {
+              <div class="alert success" role="status">{{ api.notice() }}</div>
+            }
+            @if (api.busy()) {
+              <div class="working" role="status">Working…</div>
+            }
+            <router-outlet />
+          </main>
+        </div>
+      </div>
+    }
+  `,
+})
+export class App {
+  api = inject(Api);
+  username = "";
+  password = "";
+  nav = [
+    { path: "/profiles", name: "Profiles", icon: "▦" },
+    { path: "/models", name: "Knowledge Models", icon: "◇" },
+    { path: "/review", name: "Review Inbox", icon: "✓" },
+    { path: "/graph", name: "Central Graph", icon: "⌘" },
+    { path: "/ask", name: "Ask Knowledge AI", icon: "?" },
+    { path: "/activity", name: "Activity", icon: "≡" },
+  ];
+  constructor() {
+    void this.api.init();
+  }
+  signin() {
+    void this.api.run(async () => {
+      await this.api.login(this.username, this.password);
+      this.password = "";
+    });
+  }
+  async selectProfile(id: string) {
+    await this.api.selectProfile(id);
+  }
+  async logout() {
+    await this.api.logout();
+  }
+}

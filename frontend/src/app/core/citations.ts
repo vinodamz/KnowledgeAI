@@ -1,4 +1,46 @@
-import {Component,input} from '@angular/core';
-import {Citation} from './contracts';
-@Component({selector:'ka-citations',template:`<div class="citations">@for(c of items();track c.id){<details class="citation"><summary>{{c.profile_name}} · {{c.version_label}} · revision {{c.candidate_revision}}</summary><dl><dt>Citation</dt><dd><code>{{c.id}}</code></dd><dt>Scope</dt><dd>{{c.profile_kind}} · {{c.version_status}}</dd><dt>Model revision</dt><dd><code>{{c.model_revision_id}}</code></dd><dt>Source revision</dt><dd><code>{{c.source_revision_id}}</code></dd><dt>Approved by</dt><dd><code>{{c.reviewer_id}}</code></dd><dt>Approval checksum</dt><dd><code>{{c.approval_checksum}}</code></dd></dl>@for(e of c.evidence;track $index){<blockquote>{{e['excerpt']}}</blockquote><small>Page {{e['page']}} · chunk {{e['chunk_id']}}</small>}</details>}</div>`})
-export class Citations{items=input<Citation[]>([]);}
+import { Component, input } from "@angular/core";
+import { Citation } from "./contracts";
+@Component({
+  selector: "ka-citations",
+  template: `<div class="citations">
+    @for (c of items(); track c.id) {
+      <details class="citation">
+        <summary>
+          {{ c.profile_name }} · {{ c.version_label }} · revision
+          {{ c.candidate_revision }}
+        </summary>
+        <dl>
+          <dt>Citation</dt>
+          <dd>
+            <code>{{ c.id }}</code>
+          </dd>
+          <dt>Scope</dt>
+          <dd>{{ c.profile_kind }} · {{ c.version_status }}</dd>
+          <dt>Model revision</dt>
+          <dd>
+            <code>{{ c.model_revision_id }}</code>
+          </dd>
+          <dt>Source revision</dt>
+          <dd>
+            <code>{{ c.source_revision_id }}</code>
+          </dd>
+          <dt>Approved by</dt>
+          <dd>
+            <code>{{ c.reviewer_id }}</code>
+          </dd>
+          <dt>Approval checksum</dt>
+          <dd>
+            <code>{{ c.approval_checksum }}</code>
+          </dd>
+        </dl>
+        @for (e of c.evidence; track $index) {
+          <blockquote>{{ e["excerpt"] }}</blockquote>
+          <small>Page {{ e["page"] }} · chunk {{ e["chunk_id"] }}</small>
+        }
+      </details>
+    }
+  </div>`,
+})
+export class Citations {
+  items = input<Citation[]>([]);
+}

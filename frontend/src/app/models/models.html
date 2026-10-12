@@ -1,14 +1,225 @@
-<div class="page-heading"><div><p class="eyebrow">SEMANTIC GOVERNANCE</p><h1>Knowledge Models</h1><p class="muted">Define the entities, original relation types and vocabulary extracted from sources.</p></div><button (click)="refresh()">Refresh models</button></div>
-@if(!api.profileId()){<div class="empty">Select a profile to define its knowledge model.</div>}
-@else {<div class="toolbar"><label>Model revision<select [ngModel]="model()?.id" (ngModelChange)="select(models().find(findModel($event))||null)">@for(m of models();track m.id){<option [value]="m.id">Revision {{m.revision}} · {{m.status}}</option>}</select></label>@if(api.canEdit){<button (click)="create()">Create model draft</button>}</div>
-@if(model();as m){<section class="panel"><div class="section-heading"><h2>Model revision {{m.revision}}</h2><span class="tag">{{m.status}}</span></div><label>Semantic description<textarea [(ngModel)]="description" [disabled]="!editable" rows="3"></textarea></label>@if(editable){<button (click)="saveDescription()">Save description</button>}
-@if(api.canOwn&&m.status==='draft'){<button class="primary" (click)="publish()" [disabled]="api.busy()">Publish model</button>}
-@if(m.status==='published'&&(api.canOwn||api.isAdmin)){<button class="primary" (click)="bind()" [disabled]="!api.versionId()||api.version?.status!=='draft'">Bind to selected version</button>}
-</section><section class="panel"><h2>Entity definitions</h2>@for(e of m.entities;track e.id){<div class="definition"><div class="section-heading"><h3>{{e.name}}</h3><span class="tag">{{e.qualification?'Owner qualified':'Needs owner qualification'}}</span></div><p>{{e.attributes.length}} attributes · {{e.qualification}}</p>@if(editable){<button (click)="editEntity(e)">Edit {{e.name}}</button><button (click)="remove('entities',e.id)">Delete {{e.name}}</button>@if(api.canOwn){<label>Qualification for {{e.name}}<input [(ngModel)]="qualification" placeholder="Why this is an independent entity"></label><button (click)="qualify(e)" [disabled]="!qualification.trim()">Qualify {{e.name}}</button>}}</div>}@empty{<p class="muted">No entity definitions. Add the types your sources describe.</p>}
-@if(editable){<form class="inset" (ngSubmit)="saveEntity()"><h3>{{entityId?'Edit entity definition':'Add entity definition'}}</h3><label>Entity type name<input name="entityName" [(ngModel)]="entityName" required></label><h4>Attributes</h4>@for(a of attributes;track $index;let i=$index){<div class="form-grid"><label>Attribute name<input [name]="'an'+i" [(ngModel)]="a.name" required></label><label>Data type<select [name]="'at'+i" [(ngModel)]="a.data_type"><option>string</option><option>number</option><option>boolean</option><option>integer</option></select></label><label>Description<input [name]="'ad'+i" [(ngModel)]="a.description"></label><button type="button" (click)="attributes.splice(i,1)">Remove attribute</button></div>}<button type="button" (click)="attributes.push({name:'',data_type:'string',description:''})">Add attribute</button><h4>Entity scoring</h4><div class="form-grid">@for(key of scoreFields;track key){<label>{{key.replace('_',' ')}}<input [name]="key" [(ngModel)]="scores[key]"></label>}</div><p class="muted">Editing a definition clears its previous owner qualification.</p><button class="primary">Save entity definition</button><button type="button" (click)="resetEntity()">Clear form</button></form>}</section>
-<section class="panel"><h2>Directed relations</h2>@for(r of m.relations;track r.id){<div class="definition"><strong>{{typeName(r.source_type_id)}} → {{r.name}} → {{typeName(r.target_type_id)}}</strong>@if(editable){<button (click)="editRelation(r)">Edit relation</button><button (click)="remove('relations',r.id)">Delete relation</button>}</div>}@empty{<p class="muted">No relation definitions.</p>}
-@if(editable){<form class="form-grid" (ngSubmit)="saveRelation()"><label>Relation name<input name="relationName" [(ngModel)]="relationName" required></label><label>Source entity type<select name="sourceType" [(ngModel)]="sourceType" required><option value="">Choose source</option>@for(e of m.entities;track e.id){<option [value]="e.id">{{e.name}}</option>}</select></label><label>Target entity type<select name="targetType" [(ngModel)]="targetType" required><option value="">Choose target</option>@for(e of m.entities;track e.id){<option [value]="e.id">{{e.name}}</option>}</select></label><button>Save relation definition</button></form>}</section>
-<section class="panel"><h2>Canonical vocabulary & aliases</h2>@for(c of m.concepts;track c.id){<div class="definition"><strong>{{c.name}}</strong><p>{{c.aliases.join(', ')}}</p>@if(editable){<button (click)="editConcept(c)">Edit concept</button><button (click)="remove('concepts',c.id)">Delete concept</button>}</div>}
-@if(editable){<form class="form-grid" (ngSubmit)="saveConcept()"><label>Canonical name<input name="conceptName" [(ngModel)]="conceptName" required></label><label>Aliases · one per line<textarea name="aliases" [(ngModel)]="aliases"></textarea></label><button>Save canonical concept</button></form>}</section>
-<section class="panel"><h2>Related published models</h2><p class="muted">Model links share vocabulary; they do not grant access to another profile.</p>@for(l of linkModels();track l.id){<label class="check"><input type="checkbox" [checked]="links.includes(l.id)" (change)="toggleLink(l.id)" [disabled]="!editable">{{l.profileName}} · model revision {{l.revision}}</label>}@empty{<p>No other accessible published models.</p>}@if(editable){<button (click)="saveLinks()">Save model links</button>}</section>
-}@else{<div class="empty"><h2>No model yet</h2><p>Create a draft, add entity definitions, then ask the assigned owner to qualify and publish it.</p></div>}}
+<div class="page-heading">
+  <div>
+    <p class="eyebrow">SEMANTIC GOVERNANCE</p>
+    <h1>Knowledge Models</h1>
+    <p class="muted">
+      Define the entities, original relation types and vocabulary extracted from
+      sources.
+    </p>
+  </div>
+  <button (click)="refresh()">Refresh models</button>
+</div>
+@if(!api.profileId()){
+<div class="empty">Select a profile to define its knowledge model.</div>
+} @else {
+<div class="toolbar">
+  <label
+    >Model revision<select
+      [ngModel]="model()?.id"
+      (ngModelChange)="select(models().find(findModel($event))||null)"
+    >
+      @for(m of models();track m.id){
+      <option [value]="m.id">Revision {{m.revision}} · {{m.status}}</option>
+      }
+    </select></label
+  >@if(api.canEdit){<button (click)="create()">Create model draft</button>}
+</div>
+@if(model();as m){
+<section class="panel">
+  <div class="section-heading">
+    <h2>Model revision {{m.revision}}</h2>
+    <span class="tag">{{m.status}}</span>
+  </div>
+  <label
+    >Semantic description<textarea
+      [(ngModel)]="description"
+      [disabled]="!editable"
+      rows="3"
+    ></textarea></label
+  >@if(editable){<button (click)="saveDescription()">Save description</button>}
+  @if(api.canOwn&&m.status==='draft'){<button
+    class="primary"
+    (click)="publish()"
+    [disabled]="api.busy()"
+  >
+    Publish model</button
+  >} @if(m.status==='published'&&(api.canOwn||api.isAdmin)){<button
+    class="primary"
+    (click)="bind()"
+    [disabled]="api.scopeLoading()||api.busy()||!api.versionId()||api.version?.status!=='draft'"
+  >
+    Bind to selected version</button
+  >}
+</section>
+<section class="panel">
+  <h2>Entity definitions</h2>
+  @for(e of m.entities;track e.id){
+  <div class="definition">
+    <div class="section-heading">
+      <h3>{{e.name}}</h3>
+      <span class="tag"
+        >{{e.qualification?'Owner qualified':'Needs owner qualification'}}</span
+      >
+    </div>
+    <p>{{e.attributes.length}} attributes · {{e.qualification}}</p>
+    @if(editable){<button (click)="editEntity(e)">Edit {{e.name}}</button
+    ><button (click)="remove('entities',e.id)">Delete {{e.name}}</button
+    >@if(api.canOwn){<label
+      >Qualification for {{e.name}}<input
+        [(ngModel)]="qualification"
+        placeholder="Why this is an independent entity" /></label
+    ><button (click)="qualify(e)" [disabled]="!qualification.trim()">
+      Qualify {{e.name}}</button
+    >}}
+  </div>
+  }@empty{
+  <p class="muted">
+    No entity definitions. Add the types your sources describe.
+  </p>
+  } @if(editable){
+  <form class="inset" (ngSubmit)="saveEntity()">
+    <h3>{{entityId?'Edit entity definition':'Add entity definition'}}</h3>
+    <label
+      >Entity type name<input
+        name="entityName"
+        [(ngModel)]="entityName"
+        required
+    /></label>
+    <h4>Attributes</h4>
+    @for(a of attributes;track $index;let i=$index){
+    <div class="form-grid">
+      <label
+        >Attribute name<input
+          [name]="'an'+i"
+          [(ngModel)]="a.name"
+          required /></label
+      ><label
+        >Data type<select [name]="'at'+i" [(ngModel)]="a.data_type">
+          <option>string</option>
+          <option>number</option>
+          <option>boolean</option>
+          <option>integer</option>
+        </select></label
+      ><label
+        >Description<input [name]="'ad'+i" [(ngModel)]="a.description" /></label
+      ><button type="button" (click)="attributes.splice(i,1)">
+        Remove attribute
+      </button>
+    </div>
+    }<button
+      type="button"
+      (click)="attributes.push({name:'',data_type:'string',description:''})"
+    >
+      Add attribute
+    </button>
+    <h4>Entity scoring</h4>
+    <div class="form-grid">
+      @for(key of scoreFields;track key){<label
+        >{{key.replace('_',' ')}}<input
+          [name]="key"
+          [(ngModel)]="scores[key]" /></label
+      >}
+    </div>
+    <p class="muted">
+      Editing a definition clears its previous owner qualification.
+    </p>
+    <button class="primary">Save entity definition</button
+    ><button type="button" (click)="resetEntity()">Clear form</button>
+  </form>
+  }
+</section>
+<section class="panel">
+  <h2>Directed relations</h2>
+  @for(r of m.relations;track r.id){
+  <div class="definition">
+    <strong
+      >{{typeName(r.source_type_id)}} → {{r.name}} →
+      {{typeName(r.target_type_id)}}</strong
+    >@if(editable){<button (click)="editRelation(r)">Edit relation</button
+    ><button (click)="remove('relations',r.id)">Delete relation</button>}
+  </div>
+  }@empty{
+  <p class="muted">No relation definitions.</p>
+  } @if(editable){
+  <form class="form-grid" (ngSubmit)="saveRelation()">
+    <label
+      >Relation name<input
+        name="relationName"
+        [(ngModel)]="relationName"
+        required /></label
+    ><label
+      >Source entity type<select
+        name="sourceType"
+        [(ngModel)]="sourceType"
+        required
+      >
+        <option value="">Choose source</option>
+        @for(e of m.entities;track e.id){
+        <option [value]="e.id">{{e.name}}</option>
+        }
+      </select></label
+    ><label
+      >Target entity type<select
+        name="targetType"
+        [(ngModel)]="targetType"
+        required
+      >
+        <option value="">Choose target</option>
+        @for(e of m.entities;track e.id){
+        <option [value]="e.id">{{e.name}}</option>
+        }
+      </select></label
+    ><button>Save relation definition</button>
+  </form>
+  }
+</section>
+<section class="panel">
+  <h2>Canonical vocabulary & aliases</h2>
+  @for(c of m.concepts;track c.id){
+  <div class="definition">
+    <strong>{{c.name}}</strong>
+    <p>{{c.aliases.join(', ')}}</p>
+    @if(editable){<button (click)="editConcept(c)">Edit concept</button
+    ><button (click)="remove('concepts',c.id)">Delete concept</button>}
+  </div>
+  } @if(editable){
+  <form class="form-grid" (ngSubmit)="saveConcept()">
+    <label
+      >Canonical name<input
+        name="conceptName"
+        [(ngModel)]="conceptName"
+        required /></label
+    ><label
+      >Aliases · one per line<textarea
+        name="aliases"
+        [(ngModel)]="aliases"
+      ></textarea></label
+    ><button>Save canonical concept</button>
+  </form>
+  }
+</section>
+<section class="panel">
+  <h2>Related published models</h2>
+  <p class="muted">
+    Model links share vocabulary; they do not grant access to another profile.
+  </p>
+  @for(l of linkModels();track l.id){<label class="check"
+    ><input
+      type="checkbox"
+      [checked]="links.includes(l.id)"
+      (change)="toggleLink(l.id)"
+      [disabled]="!editable"
+    />{{l.profileName}} · model revision {{l.revision}}</label
+  >}@empty{
+  <p>No other accessible published models.</p>
+  }@if(editable){<button (click)="saveLinks()">Save model links</button>}
+</section>
+}@else{
+<div class="empty">
+  <h2>No model yet</h2>
+  <p>
+    Create a draft, add entity definitions, then ask the assigned owner to
+    qualify and publish it.
+  </p>
+</div>
+}}

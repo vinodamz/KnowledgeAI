@@ -1,23 +1,147 @@
-import type {components} from './api.generated';
-export type Schema<K extends keyof components['schemas']> = components['schemas'][K];
-export type Actor={id:string;role:'admin'|'owner'|'contributor'|'reader';owned_profile_ids:string[];read_profile_ids:string[];contribute_profile_ids:string[]};
-export type Profile={id:string;kind:'product'|'project';name:string;owner_id:string;archived:boolean};
-export type Version={id:string;profile_id:string;label:string;status:'draft'|'released'|'archived';predecessor_id:string|null;model_revision_id:string|null;product_version_ids:string[]};
-export type User={id:string;username:string;role:Actor['role'];active:boolean};
-export type Grant={user_id:string;read:boolean;contribute:boolean};
-export type Entity={id:string;name:string;attributes:{name:string;data_type:string;description:string}[];scores:Record<string,number|string>;qualification:string|null;qualified_by:string|null};
-export type Relation={id:string;name:string;source_type_id:string;target_type_id:string};
-export type Concept={id:string;name:string;aliases:string[];provenance:Record<string,unknown>};
-export type Model={id:string;profile_id:string;revision:number;status:'draft'|'published';semantic_description:string;entities:Entity[];relations:Relation[];concepts:Concept[];target_model_revision_ids:string[]};
-export type Evidence={source_revision_id:string;page:number;chunk_id:string;start:number;end:number;excerpt:string;page_start:number;page_end:number};
-export type Payload={name?:string;type_id?:string|null;type_name?:string;description?:string;attributes?:Record<string,unknown>;source_candidate_id?:string;target_candidate_id?:string;source_candidate_revision?:number;target_candidate_revision?:number;[key:string]:unknown};
-export type Decision={id:string;candidate_id:string;candidate_revision:number;actor_id:string;decision:string;reason:string|null;created_at:string;checksum:string};
-export type Candidate={id:string;revision:number;latest_revision:number;kind:string;payload:Payload;evidence:Evidence[];state:string;status:string;source_revision_id:string;checksum:string;blockers:string[];reason:string|null;decisions:Decision[];published:boolean;active_generation_id:string|null};
-export type Publication={id:string;profile_id:string;version_id:string;status:string;attempts:number;generation_id:string|null;error:string|null;selection:{candidate_id:string;revision:number}[]};
-export type Job={id:string;status:string;attempts:number;error:string|null};
-export type Upload={source_id:string;revision_id:string;job_id:string;duplicate:boolean};
-export type Activity={id:string;action:string;profile_id:string|null;actor_id:string|null;created_at:string;details:Record<string,unknown>};
-export type Context=Schema<'AvailableContextResponse'>;
-export type Answer=Schema<'AnswerResponse'>;
-export type Graph=Schema<'GraphResponse'>;
-export type Citation=Schema<'CitationResponse'>;
+import type { components } from "./api.generated";
+export type Schema<K extends keyof components["schemas"]> =
+  components["schemas"][K];
+export type Actor = {
+  id: string;
+  role: "admin" | "owner" | "contributor" | "reader";
+  owned_profile_ids: string[];
+  read_profile_ids: string[];
+  contribute_profile_ids: string[];
+};
+export type Profile = {
+  id: string;
+  kind: "product" | "project";
+  name: string;
+  owner_id: string;
+  archived: boolean;
+};
+export type Version = {
+  id: string;
+  profile_id: string;
+  label: string;
+  status: "draft" | "released" | "archived";
+  predecessor_id: string | null;
+  model_revision_id: string | null;
+  product_version_ids: string[];
+};
+export type User = {
+  id: string;
+  username: string;
+  role: Actor["role"];
+  active: boolean;
+};
+export type Grant = { user_id: string; read: boolean; contribute: boolean };
+export type Entity = {
+  id: string;
+  name: string;
+  attributes: { name: string; data_type: string; description: string }[];
+  scores: Record<string, number | string>;
+  qualification: string | null;
+  qualified_by: string | null;
+};
+export type Relation = {
+  id: string;
+  name: string;
+  source_type_id: string;
+  target_type_id: string;
+};
+export type Concept = {
+  id: string;
+  name: string;
+  aliases: string[];
+  provenance: Record<string, unknown>;
+};
+export type Model = {
+  id: string;
+  profile_id: string;
+  revision: number;
+  status: "draft" | "published";
+  semantic_description: string;
+  entities: Entity[];
+  relations: Relation[];
+  concepts: Concept[];
+  target_model_revision_ids: string[];
+};
+export type Evidence = {
+  source_revision_id: string;
+  page: number;
+  chunk_id: string;
+  start: number;
+  end: number;
+  excerpt: string;
+  page_start: number;
+  page_end: number;
+};
+export type Payload = {
+  name?: string;
+  type_id?: string | null;
+  type_name?: string;
+  description?: string;
+  attributes?: Record<string, unknown>;
+  source_candidate_id?: string;
+  target_candidate_id?: string;
+  source_candidate_revision?: number;
+  target_candidate_revision?: number;
+  [key: string]: unknown;
+};
+export type Decision = {
+  id: string;
+  candidate_id: string;
+  candidate_revision: number;
+  actor_id: string;
+  decision: string;
+  reason: string | null;
+  created_at: string;
+  checksum: string;
+};
+export type Candidate = {
+  id: string;
+  revision: number;
+  latest_revision: number;
+  kind: string;
+  payload: Payload;
+  evidence: Evidence[];
+  state: string;
+  status: string;
+  source_revision_id: string;
+  checksum: string;
+  blockers: string[];
+  reason: string | null;
+  decisions: Decision[];
+  published: boolean;
+  active_generation_id: string | null;
+};
+export type Publication = {
+  id: string;
+  profile_id: string;
+  version_id: string;
+  status: string;
+  attempts: number;
+  generation_id: string | null;
+  error: string | null;
+  selection: { candidate_id: string; revision: number }[];
+};
+export type Job = {
+  id: string;
+  status: string;
+  attempts: number;
+  error: string | null;
+};
+export type Upload = {
+  source_id: string;
+  revision_id: string;
+  job_id: string;
+  duplicate: boolean;
+};
+export type Activity = {
+  id: string;
+  action: string;
+  profile_id: string | null;
+  actor_id: string | null;
+  created_at: string;
+  details: Record<string, unknown>;
+};
+export type Context = Schema<"AvailableContextResponse">;
+export type Answer = Schema<"AnswerResponse">;
+export type Graph = Schema<"GraphResponse">;
+export type Citation = Schema<"CitationResponse">;
