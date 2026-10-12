@@ -258,9 +258,6 @@ button.manage-toggle:hover {
   padding: 7px 9px;
   font-size: 12px;
 }
-.context-bar .tag {
-  margin-left: auto;
-}
 .brand-mark {
   width: 36px;
   height: 36px;
@@ -824,11 +821,6 @@ details summary:focus-visible {
   .context-bar select {
     width: 100%;
     margin-top: 4px;
-  }
-  .context-bar .tag {
-    grid-column: 1 / -1;
-    margin-left: 0;
-    justify-self: start;
   }
   .workspace main {
     padding: 24px 16px;

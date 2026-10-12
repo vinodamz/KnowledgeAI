@@ -112,9 +112,6 @@ import { Api } from "./core/api";
               </select></label
             >
 
-            <span class="tag">{{
-              api.version?.status || "No version selected"
-            }}</span>
           </div>
         </header>
         <div class="workspace">
