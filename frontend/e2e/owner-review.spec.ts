@@ -76,7 +76,9 @@ test("owner exact approval, blocked relation, verified publication, directed gra
   await expect(
     page.locator(".candidate-row .tag").filter({ hasText: "Published" }),
   ).toHaveCount(3);
-  await page.getByRole("link", { name: "Central Graph", exact: true }).click();
+  await page
+    .getByRole("link", { name: "Knowledge — Central Graph", exact: true })
+    .click();
   await page.getByRole("button", { name: "Load published graph" }).click();
   await expect(page.locator(".graph-node")).toHaveCount(2);
   await expect(page.locator(".graph-edge")).toHaveCount(1);
@@ -635,6 +637,9 @@ test("compact navigation preserves context, keyboard disclosure and responsive w
   await login(page);
   await page.setViewportSize({ width: 1280, height: 720 });
   await expect(page.locator(".sidebar")).toHaveCount(0);
+  await expect(
+    page.getByRole("link", { name: "Knowledge — Central Graph", exact: true }),
+  ).toHaveText("Knowledge");
   await expect(
     page
       .getByRole("navigation", { name: "Main navigation", exact: true })

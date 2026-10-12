@@ -147,7 +147,7 @@ export class App {
   password = "";
   manageOpen = false;
   nav = [
-    { path: "/graph", name: "Central Graph", label: "Knowledge" },
+    { path: "/graph", name: "Knowledge — Central Graph", label: "Knowledge" },
     { path: "/review", name: "Review Inbox", label: "Review" },
     { path: "/ask", name: "Ask Knowledge AI", label: "Ask" },
   ];
