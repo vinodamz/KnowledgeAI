@@ -19,6 +19,10 @@ async function login(page: Page, user = "owner-a") {
     page.getByRole("combobox", { name: "Profile", exact: true }),
   ).not.toHaveValue("");
 }
+async function manage(page: Page, name: string) {
+  await page.getByRole("button", { name: "Manage", exact: true }).click();
+  await page.getByRole("link", { name, exact: true }).click();
+}
 async function review(page: Page) {
   await page.getByRole("link", { name: "Review Inbox", exact: true }).click();
   await expect(page.locator(".candidate-button").first()).toBeVisible();
@@ -203,7 +207,7 @@ test("reader sees released context only, no private drafts, accessible navigatio
       name: "Review requires ownership or contribution access",
     }),
   ).toBeVisible();
-  await page.getByRole("link", { name: "Activity", exact: true }).click();
+  await manage(page, "Activity");
   await expect(
     page.getByRole("heading", { name: "publication activated", exact: true }),
   ).toBeVisible();
@@ -311,9 +315,7 @@ test("owner authors entity attributes, scoring, relation and aliases, qualifies 
   await page
     .getByRole("combobox", { name: "Knowledge version", exact: true })
     .selectOption({ label: "3-empty · draft" });
-  await page
-    .getByRole("link", { name: "Knowledge Models", exact: true })
-    .click();
+  await manage(page, "Knowledge Models");
   await page.getByRole("button", { name: "Create model draft" }).click();
   await expect(
     page.getByRole("heading", { name: "Model revision 2", exact: true }),
@@ -379,7 +381,6 @@ test("owner authors entity attributes, scoring, relation and aliases, qualifies 
   await expect(page.getByRole("button", { name: "Sign out" })).toBeInViewport();
   await page.evaluate(() => {
     window.scrollTo(0, 0);
-    document.querySelector(".sidebar")?.scrollTo(0, 0);
     (document.activeElement as HTMLElement)?.blur();
   });
   await page.screenshot({ path: "/tmp/knowledge-ai-models-acceptance.png" });
@@ -412,9 +413,7 @@ test("profile transition clears old model and rejects delayed superseded scope r
   await page
     .getByRole("combobox", { name: "Profile", exact: true })
     .selectOption({ label: "UI Test Product · product" });
-  await page
-    .getByRole("link", { name: "Knowledge Models", exact: true })
-    .click();
+  await manage(page, "Knowledge Models");
   await expect(
     page.getByRole("combobox", { name: "Model revision", exact: true }),
   ).toBeVisible();
@@ -628,4 +627,63 @@ test("status monitoring failure is visible, recoverable and preserves open edits
       .getByRole("alert")
       .filter({ hasText: "Status monitoring unavailable" }),
   ).toHaveCount(0);
+});
+
+test("compact navigation preserves context, keyboard disclosure and responsive workspace", async ({
+  page,
+}) => {
+  await login(page);
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await expect(page.locator(".sidebar")).toHaveCount(0);
+  await expect(
+    page
+      .getByRole("navigation", { name: "Main navigation", exact: true })
+      .locator(":scope > a"),
+  ).toHaveCount(3);
+  await expect(
+    page.getByRole("link", { name: "Knowledge Models", exact: true }),
+  ).toHaveCount(0);
+  const main = await page.locator("main#main").boundingBox();
+  expect(main!.width).toBeGreaterThan(1200);
+  const manageButton = page.getByRole("button", {
+    name: "Manage",
+    exact: true,
+  });
+  await manageButton.focus();
+  await page.keyboard.press("Enter");
+  await expect(manageButton).toHaveAttribute("aria-expanded", "true");
+  await page.keyboard.press("Tab");
+  await expect(
+    page.getByRole("link", { name: "Profiles", exact: true }),
+  ).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(manageButton).toBeFocused();
+  await expect(manageButton).toHaveAttribute("aria-expanded", "false");
+  await manageButton.click();
+  await page.locator("main#main").click({ position: { x: 10, y: 10 } });
+  await expect(manageButton).toHaveAttribute("aria-expanded", "false");
+  for (const width of [1280, 768, 390]) {
+    await page.setViewportSize({ width, height: 800 });
+    await expect(
+      page.getByRole("combobox", { name: "Profile", exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("combobox", { name: "Knowledge version", exact: true }),
+    ).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBeTruthy();
+    await manage(page, "Knowledge Models");
+    await expect(
+      page.getByRole("heading", { name: "Knowledge Models", exact: true }),
+    ).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBeTruthy();
+    await page.screenshot({ path: `/tmp/knowledge-ai-layout-${width}.png` });
+  }
 });

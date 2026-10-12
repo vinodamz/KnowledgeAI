@@ -1,4 +1,4 @@
-import { Component, inject } from "@angular/core";
+import { Component, HostListener, inject } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { RouterLink, RouterLinkActive, RouterOutlet } from "@angular/router";
 import { Api } from "./core/api";
@@ -37,21 +37,57 @@ import { Api } from "./core/api";
       </main>
     } @else {
       <div class="shell">
-        <aside class="sidebar">
-          <a routerLink="/profiles" class="brand"
-            ><div class="brand-mark">K<span>AI</span></div>
-            <strong>Knowledge AI</strong></a
-          >
-          <p class="eyebrow">WORKSPACE</p>
-          <nav aria-label="Main navigation">
-            @for (item of nav; track item.path) {
-              <a [routerLink]="item.path" routerLinkActive="active"
-                ><span aria-hidden="true">{{ item.icon }}</span
-                >{{ item.name }}</a
-              >
-            }
-          </nav>
-          <div class="scope">
+        <header class="workspace-header">
+          <div class="navigation-bar">
+            <a routerLink="/graph" class="brand" aria-label="Knowledge AI home"
+              ><div class="brand-mark">K<span>AI</span></div>
+              <strong>Knowledge AI</strong></a
+            >
+            <nav class="primary-navigation" aria-label="Main navigation">
+              @for (item of nav; track item.path) {
+                <a
+                  [routerLink]="item.path"
+                  routerLinkActive="active"
+                  [attr.aria-label]="item.name"
+                  >{{ item.label }}</a
+                >
+              }
+              <div class="manage">
+                <button
+                  class="manage-toggle"
+                  type="button"
+                  aria-controls="manage-links"
+                  [attr.aria-expanded]="manageOpen"
+                  (click)="manageOpen = !manageOpen"
+                >
+                  Manage <span aria-hidden="true">⌄</span>
+                </button>
+                @if (manageOpen) {
+                  <nav
+                    id="manage-links"
+                    class="manage-links"
+                    aria-label="Manage workspace"
+                  >
+                    @for (item of management; track item.path) {
+                      <a
+                        [routerLink]="item.path"
+                        routerLinkActive="active"
+                        (click)="manageOpen = false"
+                        >{{ item.name }}</a
+                      >
+                    }
+                  </nav>
+                }
+              </div>
+            </nav>
+            <div class="account">
+              <span>{{ api.actor()?.role }}</span
+              ><button class="quiet" (click)="api.run(logout.bind(this))">
+                Sign out
+              </button>
+            </div>
+          </div>
+          <div class="context-bar" aria-label="Selected knowledge context">
             <label
               >Profile<select
                 aria-label="Profile"
@@ -74,32 +110,14 @@ import { Api } from "./core/api";
                   <option [value]="v.id">{{ v.label }} · {{ v.status }}</option>
                 }
               </select></label
-            ><small>Model revision is bound separately.</small>
-          </div>
-          <footer>
-            <span class="avatar">{{
-              api.actor()?.role?.slice(0, 1)?.toUpperCase()
-            }}</span>
-            <div>
-              <strong>{{ api.actor()?.role }}</strong
-              ><small>Authenticated session</small>
-            </div>
-            <button class="quiet" (click)="api.run(logout.bind(this))">
-              Sign out
-            </button>
-          </footer>
-        </aside>
-        <div class="workspace">
-          <header class="topbar">
-            <span
-              >{{ api.profile?.name || "Choose a profile" }}
-              <span class="muted"
-                >/ {{ api.version?.label || "Knowledge workspace" }}</span
-              ></span
-            ><span class="tag">{{
+            >
+
+            <span class="tag">{{
               api.version?.status || "No version selected"
             }}</span>
-          </header>
+          </div>
+        </header>
+        <div class="workspace">
           <main id="main" tabindex="-1">
             @if (api.error()) {
               <div class="alert error" role="alert">
@@ -130,14 +148,29 @@ export class App {
   api = inject(Api);
   username = "";
   password = "";
+  manageOpen = false;
   nav = [
-    { path: "/profiles", name: "Profiles", icon: "▦" },
-    { path: "/models", name: "Knowledge Models", icon: "◇" },
-    { path: "/review", name: "Review Inbox", icon: "✓" },
-    { path: "/graph", name: "Central Graph", icon: "⌘" },
-    { path: "/ask", name: "Ask Knowledge AI", icon: "?" },
-    { path: "/activity", name: "Activity", icon: "≡" },
+    { path: "/graph", name: "Central Graph", label: "Knowledge" },
+    { path: "/review", name: "Review Inbox", label: "Review" },
+    { path: "/ask", name: "Ask Knowledge AI", label: "Ask" },
   ];
+  management = [
+    { path: "/profiles", name: "Profiles" },
+    { path: "/models", name: "Knowledge Models" },
+    { path: "/activity", name: "Activity" },
+  ];
+  @HostListener("document:click", ["$event"])
+  closeOutside(event: MouseEvent) {
+    if (!(event.target instanceof Element && event.target.closest(".manage")))
+      this.manageOpen = false;
+  }
+  @HostListener("document:keydown.escape", ["$event"])
+  closeManage(event: Event) {
+    if (!this.manageOpen) return;
+    this.manageOpen = false;
+    event.preventDefault();
+    (document.querySelector(".manage-toggle") as HTMLElement)?.focus();
+  }
   constructor() {
     void this.api.init();
   }
